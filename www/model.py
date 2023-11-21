@@ -28,10 +28,10 @@ class CityModel(Model):
             self.schedule = RandomActivation(self)
 
             # Goes through each character in the map file and creates the corresponding agent.
-            for r, row in enumerate(lines):
-                for c, col in enumerate(row):
+            for r, row in enumerate(lines): 
+                for c, col in enumerate(row): 
                     if col in ["v", "^", ">", "<"]:
-                        agent = Road(f"r_{r*self.width+c}", self, dataDictionary[col])
+                        agent = Road(f"r_{r*self.width+c}", self, dataDictionary[col]) # recibe un id, el modelo y la dirección de la calle
                         self.grid.place_agent(agent, (c, self.height - r - 1))
 
                     elif col in ["S", "s"]:
