@@ -70,7 +70,8 @@ class CityModel(Model):
         '''Advance the model by one step.'''
      # If the step is a multiple of 10, then add 4 cars to the simulation
     # One in each corner
-        if self.schedule.steps % 10 == 0:
+        # if self.schedule.steps % 10 == 0:
+        if self.schedule.steps == 1:
             # Define corner positions
             corners = [(0, 0), (self.width - 1, 0), (0, self.height - 1), (self.width - 1, self.height - 1)]
 

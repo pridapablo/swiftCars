@@ -44,6 +44,7 @@ class Car(Agent):
                 if cell[0].__class__.__name__ == "Obstacle":
                     row.append(0) # 0 - obstacle
                 else:
+                    # Means it's a walkable cell, check road direction here?
                     row.append(1) # 1 - walkable
             grid_matrix.append(row)
 
@@ -82,13 +83,45 @@ class Car(Agent):
         else:
             # If the path is not empty, move to the next cell
             print(f"Agent {self.unique_id} is moving to {self.path[0]}")
+            # Get the next cell in the path
             next_cell = self.path.pop(0)
-            self.model.grid.move_agent(self, next_cell)
+            # Get contents of the next cell
+            cell = self.model.grid.get_cell_list_contents([next_cell])
+            # If the cell is road, move to it
+            if cell[0].__class__.__name__ == "Road":
+                # Check if the road direction is correct
+                correct_direction = False
+                if cell[0].direction == "Left":
+                    correct_direction = True if next_cell[0] < self.pos[0] else False
+                elif cell[0].direction == "Right":
+                    correct_direction = True if next_cell[0] > self.pos[0] else False
+                elif cell[0].direction == "Up":
+                    correct_direction = True if next_cell[1] > self.pos[1] else False
+                elif cell[0].direction == "Down":
+                    correct_direction = True if next_cell[1] < self.pos[1] else False
+                # If the road direction is correct, move to it
+                if correct_direction:
+                    self.model.grid.move_agent(self, next_cell)
+
 
     def step(self):
         """ 
         Determines the new direction it will take, and then moves
         """
+        # Agent design:
+        # 1. If semaphores are green, move
+        # 2. If semaphores are red, wait (unless i'm super greedy and i see no cars)
+        # 3. Agents will always leave a gap of 1 cell between them and the next
+        #    car (unless i'm super greedy)
+        # 4. What happens with road direction when calculating the path?
+        # 5. Even if the path says to go to a cell, move needs to check if the
+        #    direction is correct and if the cell is empty (neighbor cars)
+        # 6. Communication between agents? Turn signals?
+        # 7. Deal with congested roads (agent has own memory of the last x
+        #    steps)
+        # 8. Waze behavior (if there is a traffic jam, i inform other agents)
+        # 9. Agents only change lanes if they will turn in the next intersection
+
         self.move()
 
 class Traffic_Light(Agent):
@@ -126,7 +159,12 @@ class Destination(Agent):
         return self.pos
 
     def step(self):
-        pass
+        # If there is a car in the destination, remove it
+        cell = self.model.grid.get_cell_list_contents([self.pos])
+        if len(cell) > 1:
+            self.model.grid.remove_agent(cell[1])
+            # remove the car from the schedule
+            self.model.schedule.remove(cell[1])
 
 class Obstacle(Agent):
     """
