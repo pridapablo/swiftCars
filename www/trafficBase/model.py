@@ -47,10 +47,40 @@ class CityModel(Model):
                     elif col == "D":
                         agent = Destination(f"d_{r*self.width+c}", self)
                         self.grid.place_agent(agent, (c, self.height - r - 1))
+                        self.schedule.add(agent)
+
 
         self.num_agents = N
         self.running = True
 
+    # Function to find a random destination for the cars
+    def find_destination(self):
+        # Create an empty list to store destination agents
+        destinations = []
+
+        # Iterate over all agents and add Destination agents to the list
+        for agent in self.schedule.agents:
+            if isinstance(agent, Destination):
+                destinations.append(agent)
+
+        # Choose a random destination from the list
+        return self.random.choice(destinations) if destinations else None
+
     def step(self):
         '''Advance the model by one step.'''
+     # If the step is a multiple of 10, then add 4 cars to the simulation
+    # One in each corner
+        if self.schedule.steps % 10 == 0:
+            # Define corner positions
+            corners = [(0, 0), (self.width - 1, 0), (0, self.height - 1), (self.width - 1, self.height - 1)]
+
+            for corner in corners:
+                destination = self.find_destination()
+                if destination is None: return # If there are no destinations, then return
+                agent = Car(f"c_{self.num_agents}", self, destination)
+                self.grid.place_agent(agent, corner)
+                self.schedule.add(agent)
+                self.num_agents += 1
+                print(f"Added car {self.num_agents}")
+
         self.schedule.step()

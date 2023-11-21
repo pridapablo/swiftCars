@@ -1,26 +1,89 @@
 from mesa import Agent
+from pathfinding.core.grid import Grid
+from pathfinding.finder.a_star import AStarFinder
+from pathfinding.core.diagonal_movement import DiagonalMovement
+from pathfinding.core.heuristic import manhattan
+import random
 
 class Car(Agent):
     """
-    Agent that moves randomly.
-    Attributes:
-        unique_id: Agent's ID 
-        direction: Randomly chosen direction chosen from one of eight directions
+    Agent that moves towards its destination using A*.
     """
-    def __init__(self, unique_id, model):
+    def __init__(self, unique_id, model, destination):
         """
         Creates a new random agent.
         Args:
             unique_id: The agent's ID
             model: Model reference for the agent
+            destination: Where the agent should go (destination agent)
+            path: The path the agent will follow to get to the destination
+            (could be empty)
+            greedyness: How greedy the agent is (how proactive it is when
+            interacting with other agents) (0-1)
         """
         super().__init__(unique_id, model)
+        self.destination = destination
+        self.path = []
+        # Randomly choose a greedyness value between 0 and 1
+        self.greedyness = self.random.random()
+
+    def find_path(self):
+        """ 
+        Finds the path to the destination using A*
+        """
+        # Create a grid with the city streets (non-road cells are considered
+        # obstacles)
+        grid_matrix = []
+        grid_height = self.model.height
+        grid_width = self.model.width
+
+        for y in range(grid_height):
+            row = []
+            for x in range(grid_width):
+                cell = self.model.grid.get_cell_list_contents([(x, y)])
+                if cell[0].__class__.__name__ == "Obstacle":
+                    row.append(0) # 0 - obstacle
+                else:
+                    row.append(1) # 1 - walkable
+            grid_matrix.append(row)
+
+        grid = Grid(matrix=grid_matrix)
+        print("Grid Matrix:")
+        for row in reversed(grid_matrix):
+            print(' '.join(str(cell) for cell in row))
+
+        # Create a start and end node
+        start = grid.node(*self.pos)
+        end = grid.node(*self.destination.get_position())
+
+        # Create the finder
+        finder = AStarFinder(diagonal_movement=DiagonalMovement.always)
+        path, _ = finder.find_path(start, end, grid)
+
+        if len(path) == 0:
+            print(f"Agent {self.unique_id} could not find a path to {self.destination.get_position()}")
+
+        self.path = [(x, y) for x, y in path][1:]
+
+        # Convert path to list of tuples and return it
+        return self.path
+
 
     def move(self):
         """ 
-        Determines if the agent can move in the direction that was chosen
+        Determines if the agent can move to the next cell in the path, and then
+        moves
+        
         """        
-        self.model.grid.move_to_empty(self)
+        if len(self.path) == 0:
+            # If the path is empty, find a new path
+            print(f"Agent {self.unique_id} is looking for a path to {self.destination.get_position()}")
+            self.find_path()
+        else:
+            # If the path is not empty, move to the next cell
+            print(f"Agent {self.unique_id} is moving to {self.path[0]}")
+            next_cell = self.path.pop(0)
+            self.model.grid.move_agent(self, next_cell)
 
     def step(self):
         """ 
@@ -58,6 +121,9 @@ class Destination(Agent):
     """
     def __init__(self, unique_id, model):
         super().__init__(unique_id, model)
+
+    def get_position(self):
+        return self.pos
 
     def step(self):
         pass
