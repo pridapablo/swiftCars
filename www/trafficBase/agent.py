@@ -5,6 +5,46 @@ from pathfinding.core.diagonal_movement import DiagonalMovement
 from pathfinding.core.heuristic import manhattan
 import random
 
+class DirectionalAStarFinder(AStarFinder):
+    def __init__(self, grid, heuristic=None, weight=1, diagonal_movement=DiagonalMovement.never):
+        super().__init__(heuristic, weight, diagonal_movement)
+        self.grid = grid
+
+    def find_path(self, start, end):
+        return super().find_path(start, end, self.grid)
+
+    def get_neighbors(self, node):
+        # Overriding get_neighbors to respect road directions
+        
+        neighbors = []
+        for direction in [(1, 0), (0, 1), (-1, 0), (0, -1)]:  # Four cardinal directions
+            x = node.x + direction[0]
+            y = node.y + direction[1]
+            if not self.grid.inside(x, y):
+                continue
+            neighbor = self.grid.nodes[y][x]
+            # Check if neighbor is walkable and matches the road direction
+            if neighbor.walkable and self.is_correct_direction(node, direction):
+                neighbors.append(neighbor)
+
+        return neighbors
+
+    def is_correct_direction(self, node, direction):
+        # Implement your logic here to check whether node transition
+        # follows the road direction. A placeholder implementation is given.
+
+        current_road = self.grid.node(node.x, node.y)
+        road_direction = current_road.direction
+        
+        if road_direction == "Left" and direction == (-1, 0):
+            return True
+        elif road_direction == "Right" and direction == (1, 0):
+            return True
+        elif road_direction == "Up" and direction == (0, 1):
+            return True
+        elif road_direction == "Down" and direction == (0, -1):
+            return True
+        return False
 
 class Car(Agent):
     """
@@ -126,8 +166,11 @@ class Car(Agent):
         # 6. Communication between agents? Turn signals?
         # 7. Deal with congested roads (agent has own memory of the last x
         #    steps)
-        # 8. Waze behavior (if there is a traffic jam, i inform other agents)
-        # 9. Agents only change lanes if they will turn in the next intersection
+        # 9. Agents only change lanes if they will turn in the next
+        #    intersection
+        # Ya son proactivos
+        
+        # Falta paciencia (reactividad) 
 
         self.move()
 
