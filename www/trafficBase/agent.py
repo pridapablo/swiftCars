@@ -5,6 +5,7 @@ from pathfinding.core.diagonal_movement import DiagonalMovement
 from pathfinding.core.heuristic import manhattan
 import random
 
+
 class Car(Agent):
     """
     Agent that moves towards its destination using A*.
@@ -102,6 +103,12 @@ class Car(Agent):
                 # If the road direction is correct, move to it
                 if correct_direction:
                     self.model.grid.move_agent(self, next_cell)
+                else:
+                    print(f"Agent {self.unique_id} is trying to move to {next_cell} but the road direction is {cell[0].direction}")
+                    # Delete the path and find a new one
+                    self.path = []
+                    self.find_path()
+
 
 
     def step(self):
