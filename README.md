@@ -146,7 +146,7 @@ Project Link: [https://github.com/pridapablo/swiftCars](https://github.com/prida
 [stars-url]: https://github.com/pridapablo/swiftCars/stargazers
 [issues-shield]: https://img.shields.io/github/issues/pridapablo/swiftCars.svg?style=for-the-badge
 [issues-url]: https://github.com/pridapablo/swiftCars/issues
-[license-shield]: https://img.shields.io/github/license/pridapablo/swiftCars.svg?style=for-the-badge
+[license-shield]: https://img.shields.io/github/license/pridapablo/swiftCars/blob/main/LICENSE.txt.svg?style=for-the-badge
 [license-url]: https://github.com/pridapablo/swiftCars/LICENSE.txt
 
 <!-- Stack Shields -->
