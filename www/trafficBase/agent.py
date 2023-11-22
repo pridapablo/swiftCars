@@ -1,50 +1,73 @@
 from mesa import Agent
-from pathfinding.core.grid import Grid
-from pathfinding.finder.a_star import AStarFinder
-from pathfinding.core.diagonal_movement import DiagonalMovement
-from pathfinding.core.heuristic import manhattan
-import random
 
-class DirectionalAStarFinder(AStarFinder):
-    def __init__(self, grid, heuristic=None, weight=1, diagonal_movement=DiagonalMovement.never):
-        super().__init__(heuristic, weight, diagonal_movement)
-        self.grid = grid
+class PriorityQueue:
+    def __init__(self):
+        self.elements = []
 
-    def find_path(self, start, end):
-        return super().find_path(start, end, self.grid)
+    def empty(self):
+        return len(self.elements) == 0
 
-    def get_neighbors(self, node):
-        # Overriding get_neighbors to respect road directions
-        
-        neighbors = []
-        for direction in [(1, 0), (0, 1), (-1, 0), (0, -1)]:  # Four cardinal directions
-            x = node.x + direction[0]
-            y = node.y + direction[1]
-            if not self.grid.inside(x, y):
+    def put(self, item, priority):
+        self.elements.append((priority, item))
+        self.elements.sort(reverse=True)  # Sort in place, highest priority first
+
+    def get(self):
+        return self.elements.pop()[1]
+    
+# A* search algorithm
+def heuristic(a, b):
+    (x1, y1) = a
+    (x2, y2) = b
+    return abs(x1 - x2) + abs(y1 - y2)
+
+def a_star_search(grid_matrix, start, goal, is_path_clear):
+    frontier = PriorityQueue()
+    frontier.put(start, 0)
+    came_from = {start: None}
+    cost_so_far = {start: 0}
+
+    while not frontier.empty():
+        current = frontier.get()
+
+        if current == goal:
+            break
+
+        for next in get_neighbors(grid_matrix, current):
+            if not is_path_clear(grid_matrix, current, next):
                 continue
-            neighbor = self.grid.nodes[y][x]
-            # Check if neighbor is walkable and matches the road direction
-            if neighbor.walkable and self.is_correct_direction(node, direction):
-                neighbors.append(neighbor)
+            new_cost = cost_so_far[current] + 1
+            if next not in cost_so_far or new_cost < cost_so_far[next]:
+                cost_so_far[next] = new_cost
+                priority = new_cost + heuristic(goal, next)
+                frontier.put(next, priority)
+                came_from[next] = current
 
-        return neighbors
+    path = []
+    while current != start:
+        path.append(current)
+        current = came_from[current]
+    path.reverse()  # reverse the path to start -> goal
+    return path
 
-    def is_correct_direction(self, node, direction):
-        # Implement your logic here to check whether node transition
-        # follows the road direction. A placeholder implementation is given.
+def get_neighbors(grid, pos):
+    x, y = pos
+    neighbors = []
+    directions = {'Left': (-1, 0), 'Right': (1, 0), 'Up': (0, -1), 'Down': (0, 1)}
 
-        current_road = self.grid.node(node.x, node.y)
-        road_direction = current_road.direction
-        
-        if road_direction == "Left" and direction == (-1, 0):
-            return True
-        elif road_direction == "Right" and direction == (1, 0):
-            return True
-        elif road_direction == "Up" and direction == (0, 1):
-            return True
-        elif road_direction == "Down" and direction == (0, -1):
-            return True
-        return False
+    # Get current cell and its direction if it's a road
+    current_cell = grid[y][x]
+    if isinstance(current_cell, tuple) and current_cell[0] == 1:
+        current_direction = current_cell[1]
+
+        # Add only the neighbor in the direction of the road
+        dx, dy = directions[current_direction]
+        nx, ny = x + dx, y + dy
+        if 0 <= nx < len(grid[0]) and 0 <= ny < len(grid):
+            neighbor_cell = grid[ny][nx]
+            if neighbor_cell != 0:  # Check if the neighbor cell is not an obstacle
+                neighbors.append((nx, ny))
+
+    return neighbors
 
 class Car(Agent):
     """
@@ -72,44 +95,87 @@ class Car(Agent):
         """ 
         Finds the path to the destination using A*
         """
-        # Create a grid with the city streets (non-road cells are considered
-        # obstacles)
+
+        def print_grid_matrix(grid_matrix):
+            # Symbols for each type of cell
+            symbols = {
+                0: "O",  # Obstacle
+                1: ".",  # Walkable (no specific direction)
+                (1, "Left"): "←",
+                (1, "Right"): "→",
+                (1, "Up"): "↑",
+                (1, "Down"): "↓"
+            }
+
+            # reverse the grid matrix to print it correctly
+            grid_matrix.reverse()
+            
+            for row in grid_matrix:
+                for cell in row:
+                    # Print the symbol for the cell, end='' keeps it on the same line
+                    print(symbols.get(cell, "?"), end=' ')
+                print()  # Newline after each row
+
+
         grid_matrix = []
         grid_height = self.model.height
         grid_width = self.model.width
 
+       # Example modification for the grid matrix construction
         for y in range(grid_height):
             row = []
             for x in range(grid_width):
                 cell = self.model.grid.get_cell_list_contents([(x, y)])
-                if cell[0].__class__.__name__ == "Obstacle":
-                    row.append(0) # 0 - obstacle
+                cell_type = cell[0].__class__.__name__
+                if cell_type == "Obstacle":
+                    row.append(0)
+                elif cell_type == "Road":
+                    row.append((1, cell[0].direction))  # Assuming Road objects have a 'direction' attribute
                 else:
-                    # Means it's a walkable cell, check road direction here?
-                    row.append(1) # 1 - walkable
+                    row.append(1)
             grid_matrix.append(row)
 
-        grid = Grid(matrix=grid_matrix)
-        print("Grid Matrix:")
-        for row in reversed(grid_matrix):
-            print(' '.join(str(cell) for cell in row))
+        # Print the grid matrix
+        print_grid_matrix(grid_matrix)
 
-        # Create a start and end node
-        start = grid.node(*self.pos)
-        end = grid.node(*self.destination.get_position())
+        start = self.pos
+        end = self.destination.get_position()
 
-        # Create the finder
-        finder = AStarFinder(diagonal_movement=DiagonalMovement.always)
-        path, _ = finder.find_path(start, end, grid)
+        # Check if the path is clear
+        def is_path_clear(grid, current_pos, next_pos):
+            x, y = current_pos
+            nx, ny = next_pos
+            current_cell = grid[y][x]
+            next_cell = grid[ny][nx]
 
-        if len(path) == 0:
-            print(f"Agent {self.unique_id} could not find a path to {self.destination.get_position()}")
+            # If moving into an obstacle, return False
+            if isinstance(next_cell, int) and next_cell == 0:
+                return False
 
-        self.path = [(x, y) for x, y in path][1:]
+            # If both current and next cells are roads, check if the direction aligns
+            if isinstance(current_cell, tuple) and current_cell[0] == 1 and \
+            isinstance(next_cell, tuple) and next_cell[0] == 1:
+                current_direction = current_cell[1]
+                if current_direction == "Left" and nx >= x:
+                    return False
+                if current_direction == "Right" and nx <= x:
+                    return False
+                if current_direction == "Up" and ny >= y:
+                    return False
+                if current_direction == "Down" and ny <= y:
+                    return False
+
+            # If current or next cell is not a road, movement is allowed
+            return True
+
+        # Find the path using A* algorithm
+        self.path = a_star_search(grid_matrix, start, end, is_path_clear)
+
+        if len(self.path) == 0:
+            print(f"Agent {self.unique_id} could not find a path to {end}")
 
         # Convert path to list of tuples and return it
         return self.path
-
 
     def move(self):
         """ 
@@ -123,23 +189,24 @@ class Car(Agent):
             self.find_path()
         else:
             # If the path is not empty, move to the next cell
-            print(f"Agent {self.unique_id} is moving to {self.path[0]}")
+            print(f"Agent {self.pos} is moving with path {self.path}")
             # Get the next cell in the path
             next_cell = self.path.pop(0)
             # Get contents of the next cell
             cell = self.model.grid.get_cell_list_contents([next_cell])
             # If the cell is road, move to it
+            
             if cell[0].__class__.__name__ == "Road":
                 # Check if the road direction is correct
-                correct_direction = False
-                if cell[0].direction == "Left":
-                    correct_direction = True if next_cell[0] < self.pos[0] else False
-                elif cell[0].direction == "Right":
-                    correct_direction = True if next_cell[0] > self.pos[0] else False
-                elif cell[0].direction == "Up":
-                    correct_direction = True if next_cell[1] > self.pos[1] else False
-                elif cell[0].direction == "Down":
-                    correct_direction = True if next_cell[1] < self.pos[1] else False
+                correct_direction = True
+                # if cell[0].direction == "Left":
+                #     correct_direction = True if next_cell[0] < self.pos[0] else False
+                # elif cell[0].direction == "Right":
+                #     correct_direction = True if next_cell[0] > self.pos[0] else False
+                # elif cell[0].direction == "Up":
+                #     correct_direction = True if next_cell[1] > self.pos[1] else False
+                # elif cell[0].direction == "Down":
+                #     correct_direction = True if next_cell[1] < self.pos[1] else False
                 # If the road direction is correct, move to it
                 if correct_direction:
                     self.model.grid.move_agent(self, next_cell)
@@ -148,7 +215,22 @@ class Car(Agent):
                     # Delete the path and find a new one
                     self.path = []
                     self.find_path()
-
+            # If the cell is not road, find a new path
+            elif cell[0].__class__.__name__ == "Destination":
+                print(f"Agent {self.unique_id} has reached its destination")
+                self.model.grid.move_agent(self, next_cell)
+                self.path = []
+            elif cell[0].__class__.__name__ == "Traffic_Light":
+                # Check if the traffic light is green
+                if cell[0].state:
+                    self.model.grid.move_agent(self, next_cell)
+                else:
+                    print(f"Agent {self.unique_id} is trying to move to {next_cell} but the traffic light is red")
+                    # Delete the path and find a new one
+                    self.path = []
+                    self.find_path()
+            else:
+                print(f"Agent {self.unique_id} is trying to move to {next_cell} but the cell is not road")
 
 
     def step(self):

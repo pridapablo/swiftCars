@@ -64,7 +64,9 @@ class CityModel(Model):
                 destinations.append(agent)
 
         # Choose a random destination from the list
-        return self.random.choice(destinations) if destinations else None
+        print(destinations)
+        # return self.random.choice(destinations) if destinations else None
+        return destinations[0] if destinations else None
 
     def step(self):
         '''Advance the model by one step.'''
@@ -73,7 +75,9 @@ class CityModel(Model):
         # if self.schedule.steps % 10 == 0:
         if self.schedule.steps == 1:
             # Define corner positions
-            corners = [(0, 0), (self.width - 1, 0), (0, self.height - 1), (self.width - 1, self.height - 1)]
+            # corners = [(0, 0), (self.width - 1, 0), (0, self.height - 1),
+            # (self.width - 1, self.height - 1)]
+            corners = [(0, 0)]
 
             for corner in corners:
                 destination = self.find_destination()
