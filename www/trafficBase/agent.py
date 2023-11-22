@@ -1,4 +1,5 @@
-from mesa import Agent
+from mesa import Agent, Model
+from mesa.space import MultiGrid
 
 class PriorityQueue:
     def __init__(self):
@@ -20,7 +21,10 @@ def heuristic(a, b):
     (x2, y2) = b
     return abs(x1 - x2) + abs(y1 - y2)
 
-def a_star_search(grid_matrix, start, goal, is_path_clear):
+def a_star_search(grid_matrix: MultiGrid, start, goal, is_path_clear):
+    #typeof start and goal: tuple (x, y)
+    #typeof grid_matrix: mesa model grid
+    
     frontier = PriorityQueue()
     frontier.put(start, 0)
     came_from = {start: None}
@@ -49,24 +53,38 @@ def a_star_search(grid_matrix, start, goal, is_path_clear):
     path.reverse()  # reverse the path to start -> goal
     return path
 
-def get_neighbors(grid, pos):
+def get_neighbors(grid: MultiGrid, pos):
     x, y = pos
     neighbors = []
-    directions = {'Left': (-1, 0), 'Right': (1, 0), 'Up': (0, -1), 'Down': (0, 1)}
 
-    # Get current cell and its direction if it's a road
-    current_cell = grid[y][x]
-    if isinstance(current_cell, tuple) and current_cell[0] == 1:
-        current_direction = current_cell[1]
+    # Assuming grid is a MultiGrid object
+    current_cell_contents = grid.get_cell_list_contents([pos])
 
-        # Add only the neighbor in the direction of the road
-        dx, dy = directions[current_direction]
-        nx, ny = x + dx, y + dy
-        if 0 <= nx < len(grid[0]) and 0 <= ny < len(grid):
-            neighbor_cell = grid[ny][nx]
-            if neighbor_cell != 0:  # Check if the neighbor cell is not an obstacle
-                neighbors.append((nx, ny))
+    # Check if current cell contains a road with a direction
+    current_direction = None
+    for obj in current_cell_contents:
+        if isinstance(obj, Road):  # Replace 'Road' with your road class
+            current_direction = obj.direction  # Assuming road objects have a 'direction' attribute
 
+    if current_direction:
+        # Get all neighbors (Moore neighborhood)
+        all_neighbors = grid.get_neighborhood(pos, moore=True, include_center=False)
+
+        # Filter based on the direction
+        # Assuming directions are 'Left', 'Right', 'Up', 'Down'
+        if current_direction == 'Left':
+            neighbors = [(nx, ny) for nx, ny in all_neighbors if nx < x]
+        elif current_direction == 'Right':
+            neighbors = [(nx, ny) for nx, ny in all_neighbors if nx > x]
+        elif current_direction == 'Up':
+            neighbors = [(nx, ny) for nx, ny in all_neighbors if ny > y]
+        elif current_direction == 'Down':
+            neighbors = [(nx, ny) for nx, ny in all_neighbors if ny < y]
+    else:
+        # If the current cell does not contain a road, get all neighbors
+        neighbors = grid.get_neighborhood(pos, moore=True, include_center=False)
+        
+    print(f"Neighbors of {pos} in direction {current_direction} are {neighbors}")
     return neighbors
 
 class Car(Agent):
@@ -96,76 +114,43 @@ class Car(Agent):
         Finds the path to the destination using A*
         """
 
-        def print_grid_matrix(grid_matrix):
-            # Symbols for each type of cell
-            symbols = {
-                0: "O",  # Obstacle
-                1: ".",  # Walkable (no specific direction)
-                (1, "Left"): "←",
-                (1, "Right"): "→",
-                (1, "Up"): "↑",
-                (1, "Down"): "↓"
-            }
+        grid_matrix = self.model.grid
+        print(f"Grid matrix: {grid_matrix}")
 
-            # reverse the grid matrix to print it correctly
-            grid_matrix.reverse()
-            
-            for row in grid_matrix:
-                for cell in row:
-                    # Print the symbol for the cell, end='' keeps it on the same line
-                    print(symbols.get(cell, "?"), end=' ')
-                print()  # Newline after each row
-
-
-        grid_matrix = []
-        grid_height = self.model.height
-        grid_width = self.model.width
-
-       # Example modification for the grid matrix construction
-        for y in range(grid_height):
-            row = []
-            for x in range(grid_width):
-                cell = self.model.grid.get_cell_list_contents([(x, y)])
-                cell_type = cell[0].__class__.__name__
-                if cell_type == "Obstacle":
-                    row.append(0)
-                elif cell_type == "Road":
-                    row.append((1, cell[0].direction))  # Assuming Road objects have a 'direction' attribute
-                else:
-                    row.append(1)
-            grid_matrix.append(row)
-
-        # Print the grid matrix
-        print_grid_matrix(grid_matrix)
-
-        start = self.pos
+        start = self.pos # Current position
         end = self.destination.get_position()
 
         # Check if the path is clear
-        def is_path_clear(grid, current_pos, next_pos):
-            x, y = current_pos
-            nx, ny = next_pos
-            current_cell = grid[y][x]
-            next_cell = grid[ny][nx]
+        def is_path_clear(grid: MultiGrid, current_pos, next_pos):
+            # Get the contents of the current and next cell
+            current_cell_contents = grid.get_cell_list_contents([current_pos])
+            next_cell_contents = grid.get_cell_list_contents([next_pos])
 
-            # If moving into an obstacle, return False
-            if isinstance(next_cell, int) and next_cell == 0:
-                return False
+            # Check if next cell is an obstacle (assuming obstacles are represented in a certain way)
+            for obj in next_cell_contents:
+                if isinstance(obj, Obstacle):  # Replace 'Obstacle' with your obstacle class
+                    return False
 
-            # If both current and next cells are roads, check if the direction aligns
-            if isinstance(current_cell, tuple) and current_cell[0] == 1 and \
-            isinstance(next_cell, tuple) and next_cell[0] == 1:
-                current_direction = current_cell[1]
+            # Check for road directions
+            current_road = next(filter(lambda obj: isinstance(obj, Road), current_cell_contents), None)
+            next_road = next(filter(lambda obj: isinstance(obj, Road), next_cell_contents), None)
+
+            if current_road and next_road:
+                # Directions comparison
+                current_direction = current_road.direction
+                x, y = current_pos
+                nx, ny = next_pos
+
                 if current_direction == "Left" and nx >= x:
                     return False
                 if current_direction == "Right" and nx <= x:
                     return False
-                if current_direction == "Up" and ny >= y:
+                if current_direction == "Up" and ny <= y:
                     return False
-                if current_direction == "Down" and ny <= y:
+                if current_direction == "Down" and ny >= y:
                     return False
 
-            # If current or next cell is not a road, movement is allowed
+            # Path is clear if none of the above conditions are met
             return True
 
         # Find the path using A* algorithm
