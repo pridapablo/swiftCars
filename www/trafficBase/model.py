@@ -7,11 +7,8 @@ import json
 class CityModel(Model):
     """ 
         Creates a model based on a city map.
-
-        Args:
-            N: Number of agents in the simulation
     """
-    def __init__(self, N):
+    def __init__(self):
 
         # Load the map dictionary. The dictionary maps the characters in the map file to the corresponding agent.
         dataDictionary = json.load(open("city_files/mapDictionary.json"))
@@ -50,7 +47,7 @@ class CityModel(Model):
                         self.schedule.add(agent)
 
 
-        self.num_agents = N
+        self.num_agents = 0
         self.running = True
 
     # Function to find a random destination for the cars
