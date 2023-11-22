@@ -65,7 +65,6 @@ class CityModel(Model):
                 destinations.append(agent)
 
         # Choose a random destination from the list
-        print(destinations)
         # return self.random.choice(destinations) if destinations else None
         return destinations[0] if destinations else None
 

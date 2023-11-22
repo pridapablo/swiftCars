@@ -83,8 +83,7 @@ def get_neighbors(grid: MultiGrid, pos):
     else:
         # If the current cell does not contain a road, get all neighbors
         neighbors = grid.get_neighborhood(pos, moore=True, include_center=False)
-        
-    print(f"Neighbors of {pos} in direction {current_direction} are {neighbors}")
+
     return neighbors
 
 class Car(Agent):
@@ -114,8 +113,39 @@ class Car(Agent):
         Finds the path to the destination using A*
         """
 
-        grid_matrix = self.model.grid
-        print(f"Grid matrix: {grid_matrix}")
+        matrix = self.model.grid
+        def print_grid(multigrid):
+            # Mapping of direction to arrow symbols
+            direction_arrows = {
+                "Left": "←",
+                "Right": "→",
+                "Up": "↑",
+                "Down": "↓"
+            }
+
+            for y in range(multigrid.height - 1, -1, -1):  # Start from the top row
+                for x in range(multigrid.width):
+                    cell_contents = multigrid.get_cell_list_contents([(x, y)])
+
+                    # Check if the cell contains any Car agents
+                    car_agents = [agent for agent in cell_contents if isinstance(agent, Car)]
+                    if car_agents:
+                        # If there's a car, represent it with '⊙'
+                        print('⊙', end=' ')
+                    else:
+                        # Check if the cell contains any Road agents
+                        road_agents = [agent for agent in cell_contents if isinstance(agent, Road)]
+                        if road_agents:
+                            # Assuming one road per cell, modify if needed
+                            road = road_agents[0]
+                            print(direction_arrows.get(road.direction, '?'), end=' ')
+                        else:
+                            print('.', end=' ')  # '.' represents an empty cell
+                print()  # Newline after each row
+
+
+
+        print_grid(matrix)
 
         start = self.pos # Current position
         end = self.destination.get_position()
@@ -154,7 +184,7 @@ class Car(Agent):
             return True
 
         # Find the path using A* algorithm
-        self.path = a_star_search(grid_matrix, start, end, is_path_clear)
+        self.path = a_star_search(matrix, start, end, is_path_clear)
 
         if len(self.path) == 0:
             print(f"Agent {self.unique_id} could not find a path to {end}")
@@ -164,9 +194,7 @@ class Car(Agent):
 
     def move(self):
         """ 
-        Determines if the agent can move to the next cell in the path, and then
-        moves
-        
+        Determines if the agent can move to the next cell in the path, and then moves.
         """        
         if len(self.path) == 0:
             # If the path is empty, find a new path
@@ -174,48 +202,54 @@ class Car(Agent):
             self.find_path()
         else:
             # If the path is not empty, move to the next cell
-            print(f"Agent {self.pos} is moving with path {self.path}")
-            # Get the next cell in the path
+            print(f"Agent {self.pos} is moving to {self.path[0]}")
             next_cell = self.path.pop(0)
-            # Get contents of the next cell
-            cell = self.model.grid.get_cell_list_contents([next_cell])
-            # If the cell is road, move to it
-            
-            if cell[0].__class__.__name__ == "Road":
-                # Check if the road direction is correct
-                correct_direction = True
-                # if cell[0].direction == "Left":
-                #     correct_direction = True if next_cell[0] < self.pos[0] else False
-                # elif cell[0].direction == "Right":
-                #     correct_direction = True if next_cell[0] > self.pos[0] else False
-                # elif cell[0].direction == "Up":
-                #     correct_direction = True if next_cell[1] > self.pos[1] else False
-                # elif cell[0].direction == "Down":
-                #     correct_direction = True if next_cell[1] < self.pos[1] else False
-                # If the road direction is correct, move to it
+            cell_contents = self.model.grid.get_cell_list_contents([next_cell])
+
+            # Check if any car is present in the next cell
+            if any(isinstance(obj, Car) for obj in cell_contents):
+                print(f"Agent {self.unique_id} cannot move to {next_cell} as it's occupied by another car.")
+                self.path = []
+                self.find_path()
+                return
+
+            # Check if the cell contains a road and move accordingly
+            road = next((obj for obj in cell_contents if isinstance(obj, Road)), None)
+            if road:
+                # Check the direction of the road
+                correct_direction = True  # Default to True
+                # if road.direction == "Left":
+                #     correct_direction = next_cell[0] < self.pos[0]
+                # elif road.direction == "Right":
+                #     correct_direction = next_cell[0] > self.pos[0]
+                # elif road.direction == "Up":
+                #     correct_direction = next_cell[1] > self.pos[1]
+                # elif road.direction == "Down":
+                #     correct_direction = next_cell[1] < self.pos[1]
+
                 if correct_direction:
                     self.model.grid.move_agent(self, next_cell)
                 else:
-                    print(f"Agent {self.unique_id} is trying to move to {next_cell} but the road direction is {cell[0].direction}")
-                    # Delete the path and find a new one
+                    print(f"Agent {self.unique_id} is trying to move to {next_cell} but the road direction is {road.direction}")
                     self.path = []
                     self.find_path()
-            # If the cell is not road, find a new path
-            elif cell[0].__class__.__name__ == "Destination":
+            elif any(isinstance(obj, Destination) for obj in cell_contents):
                 print(f"Agent {self.unique_id} has reached its destination")
                 self.model.grid.move_agent(self, next_cell)
                 self.path = []
-            elif cell[0].__class__.__name__ == "Traffic_Light":
-                # Check if the traffic light is green
-                if cell[0].state:
+            elif any(isinstance(obj, Traffic_Light) and obj.state for obj in cell_contents):
+                traffic_light = next((obj for obj in cell_contents if isinstance(obj, Traffic_Light)), None)
+                if traffic_light and traffic_light.state:
                     self.model.grid.move_agent(self, next_cell)
                 else:
                     print(f"Agent {self.unique_id} is trying to move to {next_cell} but the traffic light is red")
-                    # Delete the path and find a new one
                     self.path = []
                     self.find_path()
             else:
-                print(f"Agent {self.unique_id} is trying to move to {next_cell} but the cell is not road")
+                print(f"Agent {self.unique_id} is trying to move to {next_cell} but the cell is not road or traffic light is red")
+                self.path = []
+                self.find_path()
+
 
 
     def step(self):
@@ -223,7 +257,6 @@ class Car(Agent):
         Determines the new direction it will take, and then moves
         """
         # Agent design:
-        # 1. If semaphores are green, move
         # 2. If semaphores are red, wait (unless i'm super greedy and i see no cars)
         # 3. Agents will always leave a gap of 1 cell between them and the next
         #    car (unless i'm super greedy)
