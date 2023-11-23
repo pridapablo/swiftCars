@@ -16,25 +16,31 @@ def initModel():
     if request.method == 'POST':
         currentStep = 0
 
-        print(request.form)
-        print(width, height)
         cityModel = CityModel()
         return jsonify({"message":"Parameters recieved, model initiated."})
     else:
         return jsonify({
-            "message": "Parameters not received.",
-            "data": request.form,
-        }), 400  # Bad request
+            "message": "Method not allowed."
+        }), 405
+    
     
 @app.route('/getCars', methods=['GET']) # reads all (car) agents, and returns them to unity in json format
-def getAgents():
+def getCars():
     global cityModel
+    if not cityModel:
+        return jsonify({
+            "message": "Model not initialized."
+        }), 500
     if request.method == 'GET':
-        carPositions = [{"id": str(a.unique_id), "x": x, "y":0, "z":z} 
-                        for a, (x, z) in cityModel.grid.coord_iter() 
-                        if isinstance(a, Car)]
+        carPositions = [{"id": str(car.unique_id), "x": x, "y": 0, "z": z}
+                for x in range(cityModel.grid.width)
+                for z in range(cityModel.grid.height)
+                for car in cityModel.grid.get_cell_list_contents((x, z))
+                if isinstance(car, Car)]
+
         return jsonify({'positions':carPositions})
    
+
 @app.route('/getObstacles', methods=['GET']) # there is no need to update obstacles, so this is a one-time call
 def getObstacles():
     global cityModel
