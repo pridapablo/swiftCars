@@ -39,13 +39,17 @@ def getCars():
                 if isinstance(car, Car)]
 
         return jsonify({'positions':carPositions})
-   
 
 @app.route('/getObstacles', methods=['GET']) # there is no need to update obstacles, so this is a one-time call
 def getObstacles():
     global cityModel
     if request.method == 'GET':
-        obstaclePositions = [{"id": str(a.unique_id), "x": x, "y":1, "z":z} for a, (x, z) in cityModel.grid.coord_iter() if isinstance(a, Obstacle)]
+        obstaclePositions = [{"id": str(obstacle.unique_id), "x": x, "y": 0, "z": z}
+                for x in range(cityModel.grid.width)
+                for z in range(cityModel.grid.height)
+                for obstacle in cityModel.grid.get_cell_list_contents((x, z))
+                if isinstance(obstacle, Obstacle)]
+
         return jsonify({'positions':obstaclePositions})
    
 @app.route('/getTrafficLights', methods=['GET']) # get the traffic lights and its state (red or green)
