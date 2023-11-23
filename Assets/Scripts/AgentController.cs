@@ -51,6 +51,7 @@ public class AgentsData
 public class AgentController : MonoBehaviour
 {
     /*
+
     The AgentController class is used to control the agents in the simulation.
 
     Attributes:
@@ -77,25 +78,34 @@ public class AgentController : MonoBehaviour
         dt (float): The delta time.
     */
     string serverUrl = "http://localhost:8585";
-    string getAgentsEndpoint = "/getAgents";
+    string getCarsEndpoint = "/getCars";
     string getObstaclesEndpoint = "/getObstacles";
+
+    string getTrafficLightsEndpoint = "/getTrafficLights";
+
+    string getRoadsEndpoint = "/getRoads";
+
+    string getDestinationsEndpoint = "/getDestinations";
     string sendConfigEndpoint = "/init";
     string updateEndpoint = "/update";
-    AgentsData agentsData, obstacleData;
+    public AgentsData carsData, obstacleData, trafficLightData, roadData, destinationData;
     Dictionary<string, GameObject> agents;
     Dictionary<string, Vector3> prevPositions, currPositions;
 
     bool updated = false, started = false;
 
-    public GameObject agentPrefab, obstaclePrefab, floor;
+    public GameObject carPrefab, obstaclePrefab, floor, trafficLightPrefab, roadPrefab, destinationPrefab;
     public int NAgents, width, height;
     public float timeToUpdate = 5.0f;
     private float timer, dt;
 
     void Start()
     {
-        agentsData = new AgentsData();
+        carsData = new AgentsData();
         obstacleData = new AgentsData();
+        trafficLightData = new AgentsData();
+        roadData = new AgentsData();
+        destinationData = new AgentsData();
 
         prevPositions = new Dictionary<string, Vector3>();
         currPositions = new Dictionary<string, Vector3>();
@@ -123,7 +133,7 @@ public class AgentController : MonoBehaviour
         if (updated)
         {
             timer -= Time.deltaTime;
-            dt = 1.0f - (timer / timeToUpdate);
+            dt = 1.0f - (timer / timeToUpdate); // interpolation, en vez de esto hay que usar nuestras matrices 
 
             // Iterates over the agents to update their positions.
             // The positions are interpolated between the previous and current positions.
@@ -153,7 +163,7 @@ public class AgentController : MonoBehaviour
             Debug.Log(www.error);
         else 
         {
-            StartCoroutine(GetAgentsData());
+            StartCoroutine(GetCarsData());
         }
     }
 
@@ -185,41 +195,44 @@ public class AgentController : MonoBehaviour
             Debug.Log("Getting Agents positions");
 
             // Once the configuration has been sent, it launches a coroutine to get the agents data.
-            StartCoroutine(GetAgentsData());
+            StartCoroutine(GetCarsData());
             StartCoroutine(GetObstacleData());
+            StartCoroutine(GetTrafficLightData());
+            StartCoroutine(GetRoadData());
+            StartCoroutine(GetDestinationData());
+
         }
     }
 
-    IEnumerator GetAgentsData() 
+    IEnumerator GetCarsData() 
     {
         // The GetAgentsData method is used to get the agents data from the server.
 
-        UnityWebRequest www = UnityWebRequest.Get(serverUrl + getAgentsEndpoint);
+        UnityWebRequest www = UnityWebRequest.Get(serverUrl + getCarsEndpoint);
         yield return www.SendWebRequest();
- 
         if (www.result != UnityWebRequest.Result.Success)
             Debug.Log(www.error);
         else 
         {
             // Once the data has been received, it is stored in the agentsData variable.
             // Then, it iterates over the agentsData.positions list to update the agents positions.
-            agentsData = JsonUtility.FromJson<AgentsData>(www.downloadHandler.text);
+            carsData = JsonUtility.FromJson<AgentsData>(www.downloadHandler.text);
 
-            foreach(AgentData agent in agentsData.positions)
+            foreach(AgentData car in carsData.positions)
             {
-                Vector3 newAgentPosition = new Vector3(agent.x, agent.y, agent.z);
+                Vector3 newAgentPosition = new Vector3(car.x, car.y, car.z);
 
                     if(!started)
                     {
-                        prevPositions[agent.id] = newAgentPosition;
-                        agents[agent.id] = Instantiate(agentPrefab, newAgentPosition, Quaternion.identity);
+                        prevPositions[car.id] = newAgentPosition;
+                        agents[car.id] = Instantiate(carPrefab, newAgentPosition, Quaternion.identity);
                     }
                     else
                     {
                         Vector3 currentPosition = new Vector3();
-                        if(currPositions.TryGetValue(agent.id, out currentPosition))
-                            prevPositions[agent.id] = currentPosition;
-                        currPositions[agent.id] = newAgentPosition;
+                        if(currPositions.TryGetValue(car.id, out currentPosition))
+                            prevPositions[car.id] = currentPosition;
+                        currPositions[car.id] = newAgentPosition;
                     }
             }
 
@@ -232,7 +245,7 @@ public class AgentController : MonoBehaviour
     {
         UnityWebRequest www = UnityWebRequest.Get(serverUrl + getObstaclesEndpoint);
         yield return www.SendWebRequest();
- 
+
         if (www.result != UnityWebRequest.Result.Success)
             Debug.Log(www.error);
         else 
@@ -247,4 +260,62 @@ public class AgentController : MonoBehaviour
             }
         }
     }
+
+    IEnumerator GetTrafficLightData() //hay que modificarlo para que se esten llamando cada vez y sepamos el estado el semáforo
+    {
+        UnityWebRequest www = UnityWebRequest.Get(serverUrl + getTrafficLightsEndpoint);
+        yield return www.SendWebRequest();
+        if (www.result != UnityWebRequest.Result.Success)
+            Debug.Log(www.error);
+        else 
+        {
+            trafficLightData = JsonUtility.FromJson<AgentsData>(www.downloadHandler.text);
+
+            Debug.Log(trafficLightData.positions);
+
+            foreach(AgentData trafficLight in trafficLightData.positions)
+            {
+                Instantiate(trafficLightPrefab, new Vector3(trafficLight.x, trafficLight.y, trafficLight.z), Quaternion.identity);
+            }
+        }
+    }
+
+    IEnumerator GetRoadData() 
+    {
+        UnityWebRequest www = UnityWebRequest.Get(serverUrl + getRoadsEndpoint);
+        yield return www.SendWebRequest();
+        if (www.result != UnityWebRequest.Result.Success)
+            Debug.Log(www.error);
+        else 
+        {
+            roadData = JsonUtility.FromJson<AgentsData>(www.downloadHandler.text);
+
+            Debug.Log(roadData.positions);
+
+            foreach(AgentData road in obstacleData.positions)
+            {
+                Instantiate(roadPrefab, new Vector3(road.x, road.y, road.z), Quaternion.identity);
+            }
+        }
+    }
+
+    IEnumerator GetDestinationData() 
+    {
+        UnityWebRequest www = UnityWebRequest.Get(serverUrl + getDestinationsEndpoint);
+        yield return www.SendWebRequest();
+        if (www.result != UnityWebRequest.Result.Success)
+            Debug.Log(www.error);
+        else 
+        {
+            destinationData = JsonUtility.FromJson<AgentsData>(www.downloadHandler.text);
+
+            Debug.Log(destinationData.positions);
+
+            foreach(AgentData destination in destinationData.positions)
+            {
+                Instantiate(destinationPrefab, new Vector3(destination.x, destination.y, destination.z), Quaternion.identity);
+            }
+        }
+    }
+
 }

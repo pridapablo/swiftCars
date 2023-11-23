@@ -319,6 +319,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1457529884}
   - component: {fileID: 1457529883}
+  - component: {fileID: 1457529885}
   m_Layer: 0
   m_Name: City
   m_TagString: Untagged
@@ -333,7 +334,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1457529882}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4c7376b41e8cfe8ff91fb865d4a420f5, type: 3}
   m_Name: 
@@ -358,6 +359,28 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1457529885
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1457529882}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 983bc179e80f15347a79dd7b044746e7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  carPrefab: {fileID: 619571620348615292, guid: 21ef3c04aea524e1993522ec2a2489bf, type: 3}
+  obstaclePrefab: {fileID: 33555395739272859, guid: 10a584233fb38a918af771ddce837268, type: 3}
+  floor: {fileID: 3817403350493948489, guid: 6e539cda17cb94676abe2eb6f808a514, type: 3}
+  trafficLightPrefab: {fileID: 7358374230160051155, guid: 0cf4528aec38f43f4a4f1fc271b06e74, type: 3}
+  roadPrefab: {fileID: 3240343348373693069, guid: 646fc54ff3078ce94bbdbd0f0d4c4a05, type: 3}
+  destinationPrefab: {fileID: 961990229689801968, guid: 0870e23a47df89e468e8af19c065fce0, type: 3}
+  NAgents: 0
+  width: 0
+  height: 0
+  timeToUpdate: 5
 --- !u!850595691 &1515965292
 LightingSettings:
   m_ObjectHideFlags: 0
