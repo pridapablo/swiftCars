@@ -33,51 +33,42 @@ def getAgents():
         }), 500
 
     # Retrieve the 'static' parameter from the URL, default to False if not provided
-    static = request.args.get('static', 'false').lower() == 'true'
+    # static = request.args.get('static', 'false').lower() == 'true'
 
     if request.method == 'GET':
-        if static:
-            obstaclePositions = [{"id": str(obstacle.unique_id), "x": x, "y": 0, "z": z}
-                        for x in range(cityModel.grid.width)
-                        for z in range(cityModel.grid.height)
-                        for obstacle in cityModel.grid.get_cell_list_contents((x, z))
-                        if isinstance(obstacle, Obstacle)]
-            trafficLightPositions = [{"id": str(a.unique_id), "x": x, "y":1, "z":z}
-                                for x in range(cityModel.grid.width)
-                                for z in range(cityModel.grid.height)
-                                for a in cityModel.grid.get_cell_list_contents((x, z))
-                                if isinstance(a, Traffic_Light)]
-            roadPositions = [{"id": str(road.unique_id), "x": x, "y": 0, "z": z}
-                        for x in range(cityModel.grid.width)
-                        for z in range(cityModel.grid.height)
-                        for road in cityModel.grid.get_cell_list_contents((x, z))
-                        if isinstance(road, Road)]
-            destinationPositions = [{"id": str(destination.unique_id), "x": x, "y": 0, "z": z}
-                        for x in range(cityModel.grid.width)
-                        for z in range(cityModel.grid.height)
-                        for destination in cityModel.grid.get_cell_list_contents((x, z))
-                        if isinstance(destination, Destination)]
-            
-            return jsonify(
-                {'obstaclePos':obstaclePositions, 
-                 'trafficLightPos':trafficLightPositions, 
-                 'roadPos':roadPositions, 
-                 'destinationPos':destinationPositions
-                 })
-                 
-        else:
-            carPositions = [{"id": str(car.unique_id), "x": x, "y": 0, "z": z}
+        obstaclePositions = [{"id": str(obstacle.unique_id), "x": x, "y": 0, "z": z}
+                    for x in range(cityModel.grid.width)
+                    for z in range(cityModel.grid.height)
+                    for obstacle in cityModel.grid.get_cell_list_contents((x, z))
+                    if isinstance(obstacle, Obstacle)]
+        trafficLightPositions = [{"id": str(a.unique_id), "x": x, "y":1, "z":z, "state": a.state}
                             for x in range(cityModel.grid.width)
                             for z in range(cityModel.grid.height)
-                            for car in cityModel.grid.get_cell_list_contents((x, z))
-                            if isinstance(car, Car)]
-            trafficLightStatus = [{"id": str(a.unique_id), "status": a.state}
-                                for x in range(cityModel.grid.width)
-                                for z in range(cityModel.grid.height)
-                                for a in cityModel.grid.get_cell_list_contents((x, z))
-                                if isinstance(a, Traffic_Light)]
-            
-            return jsonify({'carPos':carPositions, 'trafficLightState':trafficLightStatus})
+                            for a in cityModel.grid.get_cell_list_contents((x, z))
+                            if isinstance(a, Traffic_Light)]
+        roadPositions = [{"id": str(road.unique_id), "x": x, "y": 0, "z": z}
+                    for x in range(cityModel.grid.width)
+                    for z in range(cityModel.grid.height)
+                    for road in cityModel.grid.get_cell_list_contents((x, z))
+                    if isinstance(road, Road)]
+        destinationPositions = [{"id": str(destination.unique_id), "x": x, "y": 0, "z": z}
+                    for x in range(cityModel.grid.width)
+                    for z in range(cityModel.grid.height)
+                    for destination in cityModel.grid.get_cell_list_contents((x, z))
+                    if isinstance(destination, Destination)]
+        carPositions = [{"id": str(car.unique_id), "x": x, "y": 0, "z": z}
+                        for x in range(cityModel.grid.width)
+                        for z in range(cityModel.grid.height)
+                        for car in cityModel.grid.get_cell_list_contents((x, z))
+                        if isinstance(car, Car)]
+        
+        return jsonify(
+            {'carPos':carPositions,
+                'obstaclePos':obstaclePositions, 
+                'trafficLightPos':trafficLightPositions, 
+                'roadPos':roadPositions, 
+                'destinationPos':destinationPositions
+                })
 
 @app.route('/update', methods=['GET'])
 def updateModel():

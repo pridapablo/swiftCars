@@ -68,10 +68,10 @@ public class AgentController : MonoBehaviour
         // Initializes
         simulationData = new SimulationData();
 
-        prevPositions = new Dictionary<string, Vector3>();
-        currPositions = new Dictionary<string, Vector3>();
+        // prevPositions = new Dictionary<string, Vector3>();
+        // currPositions = new Dictionary<string, Vector3>();
 
-        agents = new Dictionary<string, GameObject>();
+        // agents = new Dictionary<string, GameObject>();
 
         // floor.transform.localScale = new Vector3((float)width/10, 1, (float)height/10);
         // floor.transform.localPosition = new Vector3((float)width/2-0.5f, 0, (float)height/2-0.5f);
@@ -84,45 +84,34 @@ public class AgentController : MonoBehaviour
 
     private void Update()
     {
-        // if (timer < 0)
-        // {
-        //     timer = timeToUpdate;
-        //     updated = false;
-        //     StartCoroutine(UpdateSimulation());
-        // }
-
-        // if (updated)
-        // {
-        //     timer -= Time.deltaTime;
-        //     dt = 1.0f - (timer / timeToUpdate); // interpolation, en vez de esto hay que usar nuestras matrices 
-
-        //     // Iterates over the agents to update their positions.
-        //     // The positions are interpolated between the previous and current positions.
-        //     foreach (var agent in currPositions)
-        //     {
-        //         Vector3 currentPosition = agent.Value;
-        //         Vector3 previousPosition = prevPositions[agent.Key];
-
-        //         Vector3 interpolated = Vector3.Lerp(previousPosition, currentPosition, dt);
-        //         Vector3 direction = currentPosition - interpolated;
-
-        //         agents[agent.Key].transform.localPosition = interpolated;
-        //         if (direction != Vector3.zero) agents[agent.Key].transform.rotation = Quaternion.LookRotation(direction);
-        //     }
-
-        // }
-    }
-
-    IEnumerator UpdateSimulation()
-    {
-        UnityWebRequest www = UnityWebRequest.Get(serverUrl + updateEndpoint);
-        yield return www.SendWebRequest();
-
-        if (www.result != UnityWebRequest.Result.Success)
-            Debug.Log(www.error);
-        else
+        if (timer < 0)
         {
-            StartCoroutine(GetData(false));
+            timer = timeToUpdate;
+            updated = false;
+            StartCoroutine(UpdateSimulation());
+        }
+
+        if (updated)
+        {
+            timer -= Time.deltaTime;
+            dt = 1.0f - (timer / timeToUpdate);
+
+            // // Iterates over the agents to update their positions.
+            // // The positions are interpolated between the previous and current positions.
+            // foreach (var agent in currPositions)
+            // {
+            //     Vector3 currentPosition = agent.Value;
+            //     Vector3 previousPosition = prevPositions[agent.Key];
+
+            //     Vector3 interpolated = Vector3.Lerp(previousPosition, currentPosition, dt);
+            //     Vector3 direction = currentPosition - interpolated;
+
+            //     agents[agent.Key].transform.localPosition = interpolated;
+            //     if (direction != Vector3.zero) agents[agent.Key].transform.rotation = Quaternion.LookRotation(direction);
+            // }
+
+            // float t = (timer / timeToUpdate);
+            // dt = t * t * ( 3f - 2f*t);
         }
     }
 
@@ -150,11 +139,7 @@ public class AgentController : MonoBehaviour
 
     IEnumerator GetData(bool firstTime)
     {
-        // The GetCarsData method is used to get the agents data from the server.
-
-        string epWithParams = getDataEP + "?static=" + firstTime.ToString().ToLower();
-
-        UnityWebRequest www = UnityWebRequest.Get(serverUrl + epWithParams);
+        UnityWebRequest www = UnityWebRequest.Get(serverUrl + getDataEP);
         yield return www.SendWebRequest();
         if (www.result != UnityWebRequest.Result.Success)
             Debug.Log(www.error);
@@ -162,45 +147,80 @@ public class AgentController : MonoBehaviour
         {
             // Once the data has been received, it is stored in the CarsData variable.
             // Then, it iterates over the CarsData.positions list to update the
-            // agents positions.
+            // agents positions
+            if (www.downloadHandler.text == null)
+            {
+                Debug.LogError("www.downloadHandler.text is null");
+                yield break; // Stop the coroutine if data is null
+            }
+            else
+            {
+                Debug.Log("www.downloadHandler.text: " + www.downloadHandler.text);
+            }
 
-            var data = JsonUtility.FromJson<SimulationData>(www.downloadHandler.text);
+            simulationData = JsonUtility.FromJson<SimulationData>(www.downloadHandler.text);
+
+            if (simulationData == null)
+            {
+                Debug.LogError("Failed to parse SimulationData from JSON.");
+                yield break; // Stop the coroutine if data is null
+            }
 
             if (firstTime)
             {
-                foreach (PosData pos in data.destinationPos)
+                foreach (PosData destinationPos in simulationData.destinationPos)
                 {
-                    // GameObject destination = Instantiate(destinationPrefab, new Vector3(pos.x, pos.y, pos.z), Quaternion.identity);
-                    // destination.transform.parent = floor.transform;
-                    simulationData.destinationPos.Add(pos);
+                    GameObject destination = Instantiate(destinationPrefab, new Vector3(destinationPos.x, destinationPos.y, destinationPos.z), Quaternion.identity); ;
                 }
-                foreach (PosData pos in data.obstaclePos)
+                foreach (PosData obstaclePos in simulationData.obstaclePos)
                 {
-                    // GameObject obstacle = Instantiate(obstaclePrefab, new Vector3(pos.x, pos.y, pos.z), Quaternion.identity);
-                    // obstacle.transform.parent = floor.transform;
-                    simulationData.obstaclePos.Add(pos);
+                    GameObject obstacle = Instantiate(obstaclePrefab, new Vector3(obstaclePos.x, obstaclePos.y, obstaclePos.z), Quaternion.identity); ;
                 }
-                foreach (PosData pos in data.roadPos)
+                foreach (PosData roadPos in simulationData.roadPos)
                 {
-                    // GameObject road = Instantiate(roadPrefab, new Vector3(pos.x, pos.y, pos.z), Quaternion.identity);
-                    // road.transform.parent = floor.transform;
-                    simulationData.roadPos.Add(pos);
+                    GameObject road = Instantiate(roadPrefab, new Vector3(roadPos.x, roadPos.y, roadPos.z), Quaternion.identity); ;
                 }
-                foreach (TrafficLightData pos in data.trafficLightPos)
+                foreach (TrafficLightData trafficLightPos in simulationData.trafficLightPos)
                 {
-                    // GameObject trafficLight = Instantiate(trafficLightPrefab, new Vector3(pos.x, pos.y, pos.z), Quaternion.identity);
-                    // trafficLight.transform.parent = floor.transform;
-                    simulationData.trafficLightPos.Add(pos);
+                    GameObject trafficLight = Instantiate(trafficLightPrefab, new Vector3(trafficLightPos.x, trafficLightPos.y, trafficLightPos.z), Quaternion.identity); ;
                 }
             }
+            else
+            {
+                foreach (TrafficLightData trafficLightPos in simulationData.trafficLightPos)
+                {
+                    // GameObject trafficLight = GameObject.Find(trafficLightPos.id);
+                    // trafficLight.GetComponent<TrafficLight>().isGreen = trafficLightPos.isGreen;
+                }
+                foreach (PosData carPos in simulationData.carPos)
+                {
+                    GameObject car = GameObject.Find(carPos.id);
+                    if (car == null)
+                    {
+                        car = Instantiate(carPrefab, new Vector3(carPos.x, carPos.y, carPos.z), Quaternion.identity);
+                        car.name = carPos.id;
+                    }
+                    else
+                    {
+                        car.transform.position = new Vector3(carPos.x, carPos.y, carPos.z);
+                    }
+                }
 
+            }
         }
-
-
         updated = true;
         if (!started) started = true;
     }
+
+    IEnumerator UpdateSimulation()
+    {
+        UnityWebRequest www = UnityWebRequest.Get(serverUrl + updateEndpoint);
+        yield return www.SendWebRequest();
+
+        if (www.result != UnityWebRequest.Result.Success)
+            Debug.Log(www.error);
+        else
+            StartCoroutine(GetData(false));
+    }
 }
-
-
 
