@@ -14,9 +14,6 @@ class CityModel(Model):
         # Load the map dictionary. The dictionary maps the characters in the map file to the corresponding agent.
         path = os.path.abspath('./city_files/mapDictionary.json')
         dataDictionary = json.load(open(path))
-
-        self.traffic_lights = []
-
         # Load the map file. The map file is a text file where each character
         # represents an agent.
         
@@ -25,7 +22,10 @@ class CityModel(Model):
             self.width = len(lines[0])-1
             self.height = len(lines)
 
-            self.grid = MultiGrid(self.width, self.height, torus = False) 
+            self.corners = [(0, 0), (self.width - 1, 0), (0, self.height - 1), (self.width - 1, self.height - 1)]
+
+            self.traffic_lights = []
+            self.grid = MultiGrid(self.width, self.height, torus=False)
             self.schedule = RandomActivation(self)
 
             # Goes through each character in the map file and creates the corresponding agent.
@@ -68,24 +68,41 @@ class CityModel(Model):
         # return self.random.choice(destinations) if destinations else None
         return destinations[0] if destinations else None
 
+    # def step(self):
+    #     '''Advance the model by one step.'''
+    # # If the step is a multiple of 10, then add 4 cars to the simulation
+    # # One in each corner
+    #     # if self.schedule.steps % 10 == 0:
+    #     if self.schedule.steps == 1:
+    #         # Define corner positions
+    #         # corners = [(0, 0), (self.width - 1, 0), (0, self.height - 1),
+    #         # (self.width - 1, self.height - 1)]
+    #         corners = [(0, 0)]
+
+    #         for corner in corners:
+    #             destination = self.find_destination()
+    #             if destination is None: return # If there are no destinations, then return
+    #             agent = Car(f"c_{self.num_agents}", self, destination)
+    #             self.grid.place_agent(agent, corner)
+    #             self.schedule.add(agent)
+    #             self.num_agents += 1
+    #             print(f"Added car {self.num_agents}")
+
+    #     self.schedule.step()
+    
     def step(self):
         '''Advance the model by one step.'''
-     # If the step is a multiple of 10, then add 4 cars to the simulation
-    # One in each corner
-        # if self.schedule.steps % 10 == 0:
-        if self.schedule.steps == 1:
-            # Define corner positions
-            # corners = [(0, 0), (self.width - 1, 0), (0, self.height - 1),
-            # (self.width - 1, self.height - 1)]
-            corners = [(0, 0)]
-
-            for corner in corners:
+        # Check if current step is a multiple of 10
+        if self.schedule.steps % 10 == 0:
+            for corner in self.corners:
                 destination = self.find_destination()
-                if destination is None: return # If there are no destinations, then return
+                if destination is None:
+                    continue  # Skip if no destination found
                 agent = Car(f"c_{self.num_agents}", self, destination)
                 self.grid.place_agent(agent, corner)
                 self.schedule.add(agent)
                 self.num_agents += 1
-                print(f"Added car {self.num_agents}")
+                print(f"Added car {self.num_agents} at corner {corner}")
 
+        # Proceed with the rest of the step
         self.schedule.step()
