@@ -158,7 +158,7 @@ class Car(Agent):
 
             # Check if next cell is an obstacle (assuming obstacles are represented in a certain way)
             for obj in next_cell_contents:
-                if isinstance(obj, Obstacle):  # Replace 'Obstacle' with your obstacle class
+                if isinstance(obj, Obstacle):
                     return False
 
             # Check for road directions
@@ -289,12 +289,44 @@ class Traffic_Light(Agent):
             timeToChange: After how many step should the traffic light change color 
         """
         self.state = state
+        self.axis = "x" if state else "y"
+        self.direction = None
         self.timeToChange = timeToChange
 
     def step(self):
         """ 
         To change the state (green or red) of the traffic light in case you consider the time to change of each traffic light.
         """
+        if not self.direction:
+            # Use adjacent cells to determine the direction of the traffic
+            # light (filter out cells that don't contain a road)
+            adjacent_roads = [obj for obj in self.model.grid.get_neighbors(self.pos, moore=False) if isinstance(obj, Road)]
+            # Check if there are more than 2 roads adjacent to the traffic
+            # light
+            
+            if all(road.direction == adjacent_roads[0].direction for road in adjacent_roads):
+                self.direction = adjacent_roads[0].direction
+            else:
+                # Assume the direction of the road that has my axis using my
+                # pos +/- 1 (e.g. if my axis is x, check the cell to my left
+                # and right)
+                if self.axis == "x":
+                    # Check from the list of adjacent roads which one has the
+                    # same x value as the traffic light
+                    road = next((road for road in adjacent_roads if road.pos[0] == self.pos[0]), None)
+                    if road:
+                        self.direction = road.direction
+                elif self.axis == "y":
+                    # Check from the list of adjacent roads which one has the
+                    # same y value as the traffic light
+                    road = next((road for road in adjacent_roads if road.pos[1] == self.pos[1]), None)
+                    if road:
+                        self.direction = road.direction
+                        
+            
+        print(f"Traffic light is facing {self.direction}")
+                    
+        # Change the state of the traffic light
         if self.model.schedule.steps % self.timeToChange == 0:
             self.state = not self.state
 
