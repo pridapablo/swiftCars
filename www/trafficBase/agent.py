@@ -40,6 +40,12 @@ def a_star_search(grid_matrix: MultiGrid, start, goal, is_path_clear):
             if not is_path_clear(grid_matrix, current, next):
                 continue
             new_cost = cost_so_far[current] + 1
+
+            # Check if the move is diagonal
+            dx = abs(next[0] - current[0])
+            dy = abs(next[1] - current[1])
+            if dx == 1 and dy == 1:
+                new_cost += 1  # Add extra cost for diagonal move
             if next not in cost_so_far or new_cost < cost_so_far[next]:
                 cost_so_far[next] = new_cost
                 priority = new_cost + heuristic(goal, next)
@@ -144,7 +150,6 @@ class Car(Agent):
                 print()  # Newline after each row
 
 
-
         print_grid(matrix)
 
         start = self.pos # Current position
@@ -152,37 +157,22 @@ class Car(Agent):
 
         # Check if the path is clear
         def is_path_clear(grid: MultiGrid, current_pos, next_pos):
-            # Get the contents of the current and next cell
-            current_cell_contents = grid.get_cell_list_contents([current_pos])
-            next_cell_contents = grid.get_cell_list_contents([next_pos])
 
+            next_cell_contents = grid.get_cell_list_contents([next_pos])
             # Check if next cell is an obstacle (assuming obstacles are represented in a certain way)
             for obj in next_cell_contents:
                 if isinstance(obj, Obstacle):
                     return False
 
             # Check for road directions
-            current_road = next(filter(lambda obj: isinstance(obj, Road), current_cell_contents), None)
-            next_road = next(filter(lambda obj: isinstance(obj, Road), next_cell_contents), None)
-
-            if current_road and next_road:
-                # Directions comparison
-                current_direction = current_road.direction
-                x, y = current_pos
-                nx, ny = next_pos
-
-                if current_direction == "Left" and nx >= x:
-                    return False
-                if current_direction == "Right" and nx <= x:
-                    return False
-                if current_direction == "Up" and ny <= y:
-                    return False
-                if current_direction == "Down" and ny >= y:
-                    return False
+            current_road = next(filter(lambda obj: isinstance(obj, Road), grid.get_cell_list_contents([current_pos])), None)
+            next_road = next(filter(lambda obj: isinstance(obj, Road), grid.get_cell_list_contents([next_pos])), None)
+            if current_road:
+                return self.validate_road_direction(current_road, next_road, current_pos, next_pos)
 
             # Path is clear if none of the above conditions are met
             return True
-
+        
         # Find the path using A* algorithm
         self.path = a_star_search(matrix, start, end, is_path_clear)
 
@@ -191,65 +181,110 @@ class Car(Agent):
 
         # Convert path to list of tuples and return it
         return self.path
-
-    def move(self):
-        """ 
-        Determines if the agent can move to the next cell in the path, and then moves.
-        """        
-        if len(self.path) == 0:
-            # If the path is empty, find a new path
-            print(f"Agent {self.unique_id} is looking for a path to {self.destination.get_position()}")
-            self.find_path()
+    
+    def is_turn_approaching(self):
+        # Check the next few steps in the path for a turn
+        look_ahead_distance = 3  # Number of steps to look ahead
+        for i in range(1, min(look_ahead_distance, len(self.path))):
+            current_direction = self.get_direction(self.pos, self.path[i - 1])
+            next_direction = self.get_direction(self.path[i - 1], self.path[i])
+            if current_direction != next_direction:
+                return True
+        return False
+    
+    @staticmethod
+    def get_direction(from_cell, to_cell):
+        dx, dy = to_cell[0] - from_cell[0], to_cell[1] - from_cell[1]
+        if abs(dx) > abs(dy):
+            return "Horizontal" if dx > 0 else "Vertical"
         else:
-            # If the path is not empty, move to the next cell
-            print(f"Agent {self.pos} is moving to {self.path[0]}")
-            next_cell = self.path.pop(0)
-            cell_contents = self.model.grid.get_cell_list_contents([next_cell])
+            return "Vertical" if dy > 0 else "Horizontal"
+        
+    @staticmethod
+    def validate_road_direction(current_road, next_road, current_pos, next_pos):
+        x, y = current_pos
+        nx, ny = next_pos
 
-            # Check if any car is present in the next cell
-            if any(isinstance(obj, Car) for obj in cell_contents):
-                print(f"Agent {self.unique_id} cannot move to {next_cell} as it's occupied by another car.")
-                self.path = []
-                self.find_path()
-                return
+        # Validate direction of the current road
+        if current_road.direction == "Left" and nx >= x:
+            return False
+        if current_road.direction == "Right" and nx <= x:
+            return False
+        if current_road.direction == "Up" and ny <= y:
+            return False
+        if current_road.direction == "Down" and ny >= y:
+            return False
 
-            # Check if the cell contains a road and move accordingly
-            road = next((obj for obj in cell_contents if isinstance(obj, Road)), None)
-            if road:
-                # Check the direction of the road
-                correct_direction = True  # Default to True
-                # if road.direction == "Left":
-                #     correct_direction = next_cell[0] < self.pos[0]
-                # elif road.direction == "Right":
-                #     correct_direction = next_cell[0] > self.pos[0]
-                # elif road.direction == "Up":
-                #     correct_direction = next_cell[1] > self.pos[1]
-                # elif road.direction == "Down":
-                #     correct_direction = next_cell[1] < self.pos[1]
+        # Validate direction of the next road only if next_road is not None
+        if next_road is not None:
+            if next_road.direction == "Left" and nx >= x:
+                return False
+            if next_road.direction == "Right" and nx <= x:
+                return False
+            if next_road.direction == "Up" and ny <= y:
+                return False
+            if next_road.direction == "Down" and ny >= y:
+                return False
 
-                if correct_direction:
-                    self.model.grid.move_agent(self, next_cell)
+        return True
+    
+    def move(self):
+        if len(self.path) == 0:
+            self.find_path()
+            return
+        
+        next_cell = self.path.pop(0)
+        cell_contents = self.model.grid.get_cell_list_contents([next_cell])
+
+        # Check if the agent has arrived at the correct destination
+        for obj in cell_contents:
+            if isinstance(obj, Destination):
+                if obj == self.destination:
+                    print(f"Agent {self.unique_id} has arrived at its destination.")
+                    self.model.grid.remove_agent(self)
+                    self.model.schedule.remove(self)
+                    return
                 else:
+                    print(f"Agent {self.unique_id} has arrived at a destination, but not its own.")
+                    self.path = []
+                    self.find_path()
+                    return
+
+        # Check for a red traffic light
+        traffic_light = next((obj for obj in cell_contents if isinstance(obj, Traffic_Light)), None)
+        if traffic_light and not traffic_light.state:  # Assuming False means red
+            print(f"Agent {self.unique_id} is waiting for the traffic light.")
+            return
+
+        # Check for the presence of a road and validate its direction
+        road = next((obj for obj in cell_contents if isinstance(obj, Road)), None)
+        if road or isinstance(obj, Destination) or (traffic_light and traffic_light.state):  # Road, destination or green traffic light
+            if road:
+                next_road = next((obj for obj in self.model.grid.get_cell_list_contents([next_cell]) if isinstance(obj, Road)), None)
+                # Validate the direction of the road
+                correct_direction = self.validate_road_direction(road, next_road, self.pos, next_cell)
+                if not correct_direction:
                     print(f"Agent {self.unique_id} is trying to move to {next_cell} but the road direction is {road.direction}")
                     self.path = []
                     self.find_path()
-            elif any(isinstance(obj, Destination) for obj in cell_contents):
-                print(f"Agent {self.unique_id} has reached its destination")
-                self.model.grid.move_agent(self, next_cell)
-                self.path = []
-            elif any(isinstance(obj, Traffic_Light) and obj.state for obj in cell_contents):
-                traffic_light = next((obj for obj in cell_contents if isinstance(obj, Traffic_Light)), None)
-                if traffic_light and traffic_light.state:
-                    self.model.grid.move_agent(self, next_cell)
-                else:
-                    print(f"Agent {self.unique_id} is trying to move to {next_cell} but the traffic light is red")
-                    self.path = []
-                    self.find_path()
-            else:
-                print(f"Agent {self.unique_id} is trying to move to {next_cell} but the cell is not road or traffic light is red")
-                self.path = []
-                self.find_path()
+                    return
 
+            # Check for car presence in the next cell
+            if any(isinstance(obj, Car) for obj in cell_contents):
+                print(f"Agent {self.unique_id} is waiting due to traffic ahead.")
+                return
+
+            # Handle upcoming turns
+            if self.is_turn_approaching():
+                self.model.grid.move_agent(self, next_cell)
+                return
+
+            # If all checks pass, move to the next cell
+            self.model.grid.move_agent(self, next_cell)
+        else:
+            print(f"Agent {self.unique_id} cannot move to {next_cell} as it is not a valid cell for movement.")
+            self.path = []
+            self.find_path()
 
 
     def step(self):
@@ -324,7 +359,7 @@ class Traffic_Light(Agent):
                         self.direction = road.direction
                         
             
-        print(f"Traffic light is facing {self.direction}")
+        # print(f"Traffic light is facing {self.direction}")
                     
         # Change the state of the traffic light
         if self.model.schedule.steps % self.timeToChange == 0:
@@ -343,10 +378,14 @@ class Destination(Agent):
     def step(self):
         # If there is a car in the destination, remove it
         cell = self.model.grid.get_cell_list_contents([self.pos])
-        if len(cell) > 1:
-            self.model.grid.remove_agent(cell[1])
-            # remove the car from the schedule
-            self.model.schedule.remove(cell[1])
+        for agent in cell:
+            if isinstance(agent, Car) and agent.destination == self:
+                self.model.grid.remove_agent(agent)
+                self.model.schedule.remove(agent)
+        # if len(cell) > 1:
+        #     self.model.grid.remove_agent(cell[1])
+        #     # remove the car from the schedule
+        #     self.model.schedule.remove(cell[1])
 
 class Obstacle(Agent):
     """
