@@ -214,6 +214,20 @@ class Car(Agent):
             return "Horizontal" if dx > 0 else "Vertical"
         else:
             return "Vertical" if dy > 0 else "Horizontal"
+        
+    def validate_road_direction(self, road, next_cell):
+        # Check if the road direction is correct
+        x, y = self.pos
+        nx, ny = next_cell
+        # if road.direction == "Left" and nx >= x:
+        #     return False
+        # if road.direction == "Right" and nx <= x:
+        #     return False
+        # if road.direction == "Up" and ny <= y:
+        #     return False
+        # if road.direction == "Down" and ny >= y:
+        #     return False
+        return True
 
     
     def move(self):
@@ -224,33 +238,57 @@ class Car(Agent):
         next_cell = self.path[0]
         cell_contents = self.model.grid.get_cell_list_contents([next_cell])
 
-        # Allow diagonal movement if a turn is approaching
-        if self.is_turn_approaching():
-            self.model.grid.move_agent(self, next_cell)
-            self.path.pop(0)
+        # Check if the agent has arrived at the correct destination
+        for obj in cell_contents:
+            if isinstance(obj, Destination):
+                if obj == self.destination:
+                    print(f"Agent {self.unique_id} has arrived at its destination.")
+                    self.model.grid.remove_agent(self)
+                    self.model.schedule.remove(self)
+                    return
+                else:
+                    print(f"Agent {self.unique_id} has arrived at a destination, but not its own.")
+                    self.path = []
+                    self.find_path()
+                    return
+
+        # Check for a red traffic light
+        traffic_light = next((obj for obj in cell_contents if isinstance(obj, Traffic_Light)), None)
+        if traffic_light and not traffic_light.state:  # Assuming False means red
+            print(f"Agent {self.unique_id} is waiting for the traffic light.")
             return
-        
-        # Check if the next cell is occupied by another car
-        if any(isinstance(obj, Car) for obj in cell_contents):
-            print(f"Agent {self.unique_id} is waiting due to traffic ahead.")
-            # Optionally, you can call find_path() here to recalculate the path
-            return
-        
-        # First, check for a road in the next cell
+
+        # Check for the presence of a road and validate its direction
         road = next((obj for obj in cell_contents if isinstance(obj, Road)), None)
-        if road:
+        if road or isinstance(obj, Destination) or (traffic_light and traffic_light.state):  # Road, destination or green traffic light
+            if road:
+                # Validate the direction of the road
+                correct_direction = self.validate_road_direction(road, next_cell)
+                if not correct_direction:
+                    print(f"Agent {self.unique_id} is trying to move to {next_cell} but the road direction is {road.direction}")
+                    self.path = []
+                    self.find_path()
+                    return
+
+            # Check for car presence in the next cell
+            if any(isinstance(obj, Car) for obj in cell_contents):
+                print(f"Agent {self.unique_id} is waiting due to traffic ahead.")
+                return
+
+            # Handle upcoming turns
+            if self.is_turn_approaching():
+                self.model.grid.move_agent(self, next_cell)
+                self.path.pop(0)
+                return
+
+            # If all checks pass, move to the next cell
             self.model.grid.move_agent(self, next_cell)
             self.path.pop(0)
         else:
-            # If no road, check for a traffic light and if it's green
-            traffic_light = next((obj for obj in cell_contents if isinstance(obj, Traffic_Light)), None)
-            if traffic_light and traffic_light.state == True:  # Assuming True means green
-                self.model.grid.move_agent(self, next_cell)
-                self.path.pop(0)
-            else:
-                # If the next cell is not a road or a green traffic light, don't move
-                # Consider recalculating the path
-                return
+            print(f"Agent {self.unique_id} cannot move to {next_cell} as it is not a valid cell for movement.")
+            self.path = []
+            self.find_path()
+
 
     def step(self):
         """ 
@@ -324,7 +362,7 @@ class Traffic_Light(Agent):
                         self.direction = road.direction
                         
             
-        print(f"Traffic light is facing {self.direction}")
+        # print(f"Traffic light is facing {self.direction}")
                     
         # Change the state of the traffic light
         if self.model.schedule.steps % self.timeToChange == 0:
