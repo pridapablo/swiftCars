@@ -373,7 +373,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   carPrefab: {fileID: 619571620348615292, guid: 21ef3c04aea524e1993522ec2a2489bf, type: 3}
   obstaclePrefab: {fileID: 33555395739272859, guid: 10a584233fb38a918af771ddce837268, type: 3}
-  floor: {fileID: 0}
+  floor: {fileID: 3817403350493948489, guid: 6e539cda17cb94676abe2eb6f808a514, type: 3}
   trafficLightPrefab: {fileID: 7358374230160051155, guid: 0cf4528aec38f43f4a4f1fc271b06e74, type: 3}
   roadPrefab: {fileID: 3240343348373693069, guid: 646fc54ff3078ce94bbdbd0f0d4c4a05, type: 3}
   destinationPrefab: {fileID: 961990229689801968, guid: 0870e23a47df89e468e8af19c065fce0, type: 3}

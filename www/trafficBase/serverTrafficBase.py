@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
-from trafficBase.model import CityModel
-from trafficBase.agent import Car, Traffic_Light, Obstacle, Road, Destination
+from model import CityModel
+from agent import Car, Traffic_Light, Obstacle, Road, Destination
 
 # Model configuration
 width = 0
@@ -10,7 +10,7 @@ currentStep = 0
 
 app = Flask("Traffic")
 
-@app.route('/init', methods=['POST'])
+@app.route('/init', methods=['POST']) #
 def initModel():
     global width, height, cityModel, currentStep
     if request.method == 'POST':
@@ -26,25 +26,29 @@ def initModel():
             "data": request.form,
         }), 400  # Bad request
     
-@app.route('/getCars', methods=['GET'])
+@app.route('/getCars', methods=['GET']) # reads all (car) agents, and returns them to unity in json format
 def getAgents():
     global cityModel
     if request.method == 'GET':
-        carPositions = [{"id": str(a.unique_id), "x": x, "y":1, "z":z} for a, (x, z) in cityModel.grid.coord_iter() if isinstance(a, Car)]
+        carPositions = [{"id": str(a.unique_id), "x": x, "y":0, "z":z} 
+                        for a, (x, z) in cityModel.grid.coord_iter() 
+                        if isinstance(a, Car)]
         return jsonify({'positions':carPositions})
    
-@app.route('/getObstacles', methods=['GET'])
+@app.route('/getObstacles', methods=['GET']) # there is no need to update obstacles, so this is a one-time call
 def getObstacles():
     global cityModel
     if request.method == 'GET':
         obstaclePositions = [{"id": str(a.unique_id), "x": x, "y":1, "z":z} for a, (x, z) in cityModel.grid.coord_iter() if isinstance(a, Obstacle)]
         return jsonify({'positions':obstaclePositions})
    
-@app.route('/getTrafficLights', methods=['GET'])
+@app.route('/getTrafficLights', methods=['GET']) # get the traffic lights and its state (red or green)
 def getTrafficLights():
     global cityModel
     if request.method == 'GET':
-        trafficLightPositions = [{"id": str(a.unique_id), "x": x, "y":1, "z":z} for a, (x, z) in cityModel.grid.coord_iter() if isinstance(a, Traffic_Light)]
+        trafficLightPositions = [{"id": str(a.unique_id), "x": x, "y":1, "z":z} 
+                                for a, (x, z) in cityModel.grid.coord_iter() 
+                                if isinstance(a, Traffic_Light)]
         return jsonify({'positions':trafficLightPositions})
     
 @app.route('/getRoads', methods=['GET'])
@@ -60,10 +64,21 @@ def getDestinations():
     if request.method == 'GET':
         destinationPositions = [{"id": str(a.unique_id), "x": x, "y":1, "z":z} for a, (x, z) in cityModel.grid.coord_iter() if isinstance(a, Destination)]
         return jsonify({'positions':destinationPositions})
-    
+
+@app.route('/update', methods=['GET'])
+def updateModel():
+    # desde unity se va a mandar un get para que se actualice el modelo
+    # una vez que se actualice, se regresa un mensaje de que se actualizó y el paso en el que va
+    global currentStep, randomModel
+    if request.method == 'GET':
+        cityModel.step()
+        currentStep += 1
+        return jsonify({'message':f'Model updated to step {currentStep}.', 'currentStep':currentStep})
+
 if __name__=='__main__':
     app.run(
         host='localhost',
         port=8585,
         debug=True
     )
+# 

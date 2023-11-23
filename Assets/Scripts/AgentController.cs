@@ -51,6 +51,7 @@ public class AgentsData
 public class AgentController : MonoBehaviour
 {
     /*
+
     The AgentController class is used to control the agents in the simulation.
 
     Attributes:
@@ -87,7 +88,7 @@ public class AgentController : MonoBehaviour
     string getDestinationsEndpoint = "/getDestinations";
     string sendConfigEndpoint = "/init";
     string updateEndpoint = "/update";
-    AgentsData carsData, obstacleData, trafficLightData, roadData, destinationData;
+    public AgentsData carsData, obstacleData, trafficLightData, roadData, destinationData;
     Dictionary<string, GameObject> agents;
     Dictionary<string, Vector3> prevPositions, currPositions;
 
@@ -132,7 +133,7 @@ public class AgentController : MonoBehaviour
         if (updated)
         {
             timer -= Time.deltaTime;
-            dt = 1.0f - (timer / timeToUpdate);
+            dt = 1.0f - (timer / timeToUpdate); // interpolation, en vez de esto hay que usar nuestras matrices 
 
             // Iterates over the agents to update their positions.
             // The positions are interpolated between the previous and current positions.
@@ -260,7 +261,7 @@ public class AgentController : MonoBehaviour
         }
     }
 
-    IEnumerator GetTrafficLightData() 
+    IEnumerator GetTrafficLightData() //hay que modificarlo para que se esten llamando cada vez y sepamos el estado el semáforo
     {
         UnityWebRequest www = UnityWebRequest.Get(serverUrl + getTrafficLightsEndpoint);
         yield return www.SendWebRequest();
