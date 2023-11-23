@@ -197,6 +197,25 @@ class Car(Agent):
         # Convert path to list of tuples and return it
         return self.path
     
+    def is_turn_approaching(self):
+        # Check the next few steps in the path for a turn
+        look_ahead_distance = 3  # Number of steps to look ahead
+        for i in range(1, min(look_ahead_distance, len(self.path))):
+            current_direction = self.get_direction(self.pos, self.path[i - 1])
+            next_direction = self.get_direction(self.path[i - 1], self.path[i])
+            if current_direction != next_direction:
+                return True
+        return False
+    
+    @staticmethod
+    def get_direction(from_cell, to_cell):
+        dx, dy = to_cell[0] - from_cell[0], to_cell[1] - from_cell[1]
+        if abs(dx) > abs(dy):
+            return "Horizontal" if dx > 0 else "Vertical"
+        else:
+            return "Vertical" if dy > 0 else "Horizontal"
+
+    
     def move(self):
         if len(self.path) == 0:
             self.find_path()
@@ -232,24 +251,6 @@ class Car(Agent):
                 # If the next cell is not a road or a green traffic light, don't move
                 # Consider recalculating the path
                 return
-
-    def is_turn_approaching(self):
-        # Check the next few steps in the path for a turn
-        look_ahead_distance = 3  # Number of steps to look ahead
-        for i in range(1, min(look_ahead_distance, len(self.path))):
-            current_direction = self.get_direction(self.pos, self.path[i - 1])
-            next_direction = self.get_direction(self.path[i - 1], self.path[i])
-            if current_direction != next_direction:
-                return True
-        return False
-    
-    @staticmethod
-    def get_direction(from_cell, to_cell):
-        dx, dy = to_cell[0] - from_cell[0], to_cell[1] - from_cell[1]
-        if abs(dx) > abs(dy):
-            return "Horizontal" if dx > 0 else "Vertical"
-        else:
-            return "Vertical" if dy > 0 else "Horizontal"
 
     def step(self):
         """ 
