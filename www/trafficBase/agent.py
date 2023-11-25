@@ -113,6 +113,10 @@ class Car(Agent):
         self.path = []
         # Randomly choose a greedyness value between 0 and 1
         self.greedyness = self.random.random()
+        # Blinkers are off by default
+        self.blinker_state = 'off'  # Initialize the blinker state
+        self.blinkers = 'off'
+        self.wait = False
 
     def find_path(self):
         """ 
@@ -306,8 +310,68 @@ class Car(Agent):
         # Ya son proactivos
         
         # Falta paciencia (reactividad) 
+        
+        if self.wait:
+            self.wait = False
+            return  # Skip this step to yield
+
+        # Set blinker state based on upcoming movement
+        self.update_blinker_state()
+
+        # Check and react to neighbors' blinker states
+        self.react_to_neighbors_blinkers()
 
         self.move()
+    
+    def update_blinker_state(self):
+        if self.is_turn_approaching():
+            turn_direction = self.get_turn_direction()
+            if self.blinker_state != turn_direction:
+                print(f"Car {self.unique_id} turning on {turn_direction} blinker")  # Debug print
+            self.blinker_state = turn_direction
+        else:
+            if self.blinker_state != 'off':
+                print(f"Car {self.unique_id} turning off blinker")  # Debug print
+            self.blinker_state = 'off'
+    
+    def get_turn_direction(self):
+        # Ensure there are at least two steps ahead in the path to determine a turn
+        if len(self.path) < 2:
+            return 'off'
+
+        # Current and next positions
+        current_pos = self.path[0]
+        next_pos = self.path[1]
+
+        # Calculate direction vectors
+        current_direction = (next_pos[0] - current_pos[0], next_pos[1] - current_pos[1])
+
+        # If there is a third position, use it to determine the turn direction
+        if len(self.path) > 2:
+            future_pos = self.path[2]
+            next_direction = (future_pos[0] - next_pos[0], future_pos[1] - next_pos[1])
+
+            # Compare current direction with next direction
+            if current_direction[0] == next_direction[0] and current_direction[1] == next_direction[1]:
+                return 'off'  # Going straight
+            elif current_direction[0] == next_direction[1] and current_direction[1] == -next_direction[0]:
+                return 'right'  # Right turn
+            elif current_direction[0] == -next_direction[1] and current_direction[1] == next_direction[0]:
+                return 'left'  # Left turn
+
+        # If the path does not have a third position, it means we're not turning
+        return 'off'
+    
+    def react_to_neighbors_blinkers(self):
+        neighbors = self.model.grid.get_neighbors(self.pos, moore=True, include_center=False)
+        for neighbor in neighbors:
+            if isinstance(neighbor, Car) and neighbor.blinker_state in ['left', 'right']:
+                # If the neighbor is signaling to turn, yield to allow them to pass
+                self.yield_to_turning_car(neighbor)
+
+    def yield_to_turning_car(self, turning_car):
+        # Wait for one step
+        self.wait = True
 
 class Traffic_Light(Agent):
     """

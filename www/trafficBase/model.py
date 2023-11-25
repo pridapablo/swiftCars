@@ -54,6 +54,7 @@ class CityModel(Model):
         self.num_agents = 0
         self.running = True
 
+
     # Function to find a random destination for the cars
     def find_destination(self):
         # Create an empty list to store destination agents
