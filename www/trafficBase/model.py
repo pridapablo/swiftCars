@@ -65,44 +65,36 @@ class CityModel(Model):
                 destinations.append(agent)
 
         # Choose a random destination from the list
-        # return self.random.choice(destinations) if destinations else None
-        return destinations[0] if destinations else None
-
-    # def step(self):
-    #     '''Advance the model by one step.'''
-    # # If the step is a multiple of 10, then add 4 cars to the simulation
-    # # One in each corner
-    #     # if self.schedule.steps % 10 == 0:
-    #     if self.schedule.steps == 1:
-    #         # Define corner positions
-    #         # corners = [(0, 0), (self.width - 1, 0), (0, self.height - 1),
-    #         # (self.width - 1, self.height - 1)]
-    #         corners = [(0, 0)]
-
-    #         for corner in corners:
-    #             destination = self.find_destination()
-    #             if destination is None: return # If there are no destinations, then return
-    #             agent = Car(f"c_{self.num_agents}", self, destination)
-    #             self.grid.place_agent(agent, corner)
-    #             self.schedule.add(agent)
-    #             self.num_agents += 1
-    #             print(f"Added car {self.num_agents}")
-
-    #     self.schedule.step()
+        return self.random.choice(destinations) if destinations else None
     
     def step(self):
         '''Advance the model by one step.'''
         # Check if current step is a multiple of 10
         if self.schedule.steps % 10 == 0:
+            all_corners_filled = True  # Assume all corners are filled initially
+
             for corner in self.corners:
                 destination = self.find_destination()
                 if destination is None:
                     continue  # Skip if no destination found
-                agent = Car(f"c_{self.num_agents}", self, destination)
-                self.grid.place_agent(agent, corner)
-                self.schedule.add(agent)
-                self.num_agents += 1
-                print(f"Added car {self.num_agents} at corner {corner}")
+
+                # Check if corner has a car
+                if not any(isinstance(agent, Car) and agent.pos == corner for agent in self.schedule.agents):
+                    all_corners_filled = False  # A corner is not filled
+
+                    agent = Car(f"c_{self.num_agents}", self, destination)
+                    self.grid.place_agent(agent, corner)
+                    self.schedule.add(agent)
+                    self.num_agents += 1
+                    print(f"Added car {self.num_agents} at corner {corner}")
+                else:
+                    print(f"Corner {corner} is already filled")
+
+            # Halt if all corners are filled
+            if all_corners_filled:
+                print("All corners are filled. Halting the model.")
+                self.running = False
+
 
         # Proceed with the rest of the step
         self.schedule.step()
