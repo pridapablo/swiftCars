@@ -182,7 +182,9 @@ public class AgentController : MonoBehaviour
                 }
                 foreach (TrafficLightData trafficLightPos in simulationData.trafficLightPos)
                 {
-                    GameObject trafficLight = Instantiate(trafficLightPrefab, new Vector3(trafficLightPos.x, trafficLightPos.y, trafficLightPos.z), Quaternion.identity); ;
+                    GameObject trafficLight = Instantiate(trafficLightPrefab, new Vector3(trafficLightPos.x, trafficLightPos.y, trafficLightPos.z), Quaternion.identity); 
+                    // and a road
+                    GameObject road = Instantiate(roadPrefab, new Vector3(trafficLightPos.x, trafficLightPos.y, trafficLightPos.z), Quaternion.identity);
                 }
             }
             else

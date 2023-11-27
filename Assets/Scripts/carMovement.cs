@@ -74,29 +74,25 @@ public class MatrixMovement : MonoBehaviour
         Matrix4x4 moveObject = HW_Transforms.TranslationMat(displacement.x*Time.time,
                                                     displacement.y*Time.time,
                                                     displacement.z*Time.time);
-        if (displacement.x != 0){
+        Matrix4x4 scale = HW_Transforms.ScaleMat(carScale, carScale, carScale);
             float angle = Mathf.Atan2(displacement.x, displacement.z) * Mathf.Rad2Deg;
             Matrix4x4 rotate = HW_Transforms.RotateMat(angle, AXIS.Y);
-            Matrix4x4 composite = moveObject * rotate;
-            return composite;
-        } 
-        else {
-            Matrix4x4 composite = moveObject;
-            return composite;
-        }
+            Matrix4x4 composite = moveObject * rotate * scale;
+        return composite;
     }
+
 
 // creates a matrix for the wheels
     Matrix4x4 Wheel(Matrix4x4 carComposite, int wheelIndex){
         Matrix4x4 scale = HW_Transforms.ScaleMat(wheelScale.x, wheelScale.y, wheelScale.z); // scales the wheels
         Matrix4x4 initialRotate = HW_Transforms.RotateMat(90, AXIS.Y); // rotates the wheels when they appear 
-        Matrix4x4 rotate = HW_Transforms.RotateMat(-90 * Time.time, AXIS.X); 
+        Matrix4x4 rotate = HW_Transforms.RotateMat(90 * Time.time, AXIS.X); 
         Matrix4x4 move = HW_Transforms.TranslationMat(wheels[wheelIndex].x, wheels[wheelIndex].y, wheels[wheelIndex].z);
         Matrix4x4 composite = carComposite * move * rotate * initialRotate * scale;
         return composite;
     }
 
-// car transformation
+// car transformation (mesh update)
     void DoTransformCar(Matrix4x4 carComposite) 
     {
         for (int i = 0; i < newVertices.Length; i++) 
@@ -111,7 +107,7 @@ public class MatrixMovement : MonoBehaviour
         mesh.RecalculateNormals();
     }
 
-// wheel transformation
+// wheel transformation (mesh update)
     void DoTransformWheels(Matrix4x4 wheelComposite, int wheelIndex){
         for (int j = 0; j < newWheelVertices[wheelIndex].Length; j++)
         {
