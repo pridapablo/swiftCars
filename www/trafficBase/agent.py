@@ -293,9 +293,7 @@ class Car(Agent):
         """
         # Agent design:
         # 3. Agents will always leave a gap of 1 cell between them and the next
-        #    car (unless i'm super greedy)
-        # 5. Even if the path says to go to a cell, move needs to check if the
-        #    direction is correct and if the cell is empty (neighbor cars)
+        #    car (unless i'm super greedy)?
         # 6. Communication between agents? Turn signals?
         # 7. Deal with congested roads (agent has own memory of the last x
         #    steps)
