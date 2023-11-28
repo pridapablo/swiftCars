@@ -64,13 +64,13 @@ def get_neighbors(grid: MultiGrid, pos):
     neighbors = []
 
     # Assuming grid is a MultiGrid object
-    current_next_cell_contents = grid.get_cell_list_contents([pos])
+    current_cell_contents = grid.get_cell_list_contents([pos])
 
     # Check if current cell contains a road with a direction
     current_direction = None
-    for obj in current_next_cell_contents:
-        if isinstance(obj, Road):  # Replace 'Road' with your road class
-            current_direction = obj.direction  # Assuming road objects have a 'direction' attribute
+    for obj in current_cell_contents:
+        if isinstance(obj, Road):  
+            current_direction = obj.direction  # all road objects have a 'direction' attribute
 
     if current_direction:
         # Get all neighbors (Moore neighborhood)
@@ -149,6 +149,7 @@ class Car(Agent):
 
         if len(self.path) == 0:
             print(f"Agent {self.unique_id} could not find a path to {end}")
+            print(f"Keeping current path: {self.path}")
             return # Don't store the path if it's empty
 
         # Convert path to list of tuples and return it
@@ -186,21 +187,8 @@ class Car(Agent):
         return True
 
     def move(self):
-        # print(f"Agent @ {self.pos}: next cell: {self.path[0] if self.path else None} | path: {self.path}")
-        if len(self.path) == 0:
-            self.find_path()
-            return
-        
+        # 1. Destination
         current_cell_contents = self.model.grid.get_cell_list_contents([self.pos])
-        next_cell = self.path[0]
-        next_cell_contents = self.model.grid.get_cell_list_contents([next_cell])
-
-        # 1. Traffic lights
-        traffic_light = next((obj for obj in next_cell_contents if isinstance(obj, Traffic_Light)), None)
-        if traffic_light and not traffic_light.state:  # Assuming False means red
-            return
-
-        # 2. Destination
         for obj in current_cell_contents:
             if isinstance(obj, Destination):
                 if obj == self.destination:
@@ -209,11 +197,23 @@ class Car(Agent):
                     self.model.schedule.remove(self)
                     return
                 else:
-                    print(f"Agent {self.unique_id} has arrived at a destination, but not its own.")
+                    print(f"Agent {self.unique_id} has arrived at a destination, but not its own.") # TODO: This can happen, why?
                     self.path = []
                     self.find_path()
                     return
+                
+        # If the path is empty, find a new path since no destination was found
+        if len(self.path) == 0:
+            self.find_path()
+        
+        next_cell = self.path[0]
+        next_cell_contents = self.model.grid.get_cell_list_contents([next_cell])
 
+        # 2. Traffic lights
+        traffic_light = next((obj for obj in next_cell_contents if isinstance(obj, Traffic_Light)), None)
+        if traffic_light and not traffic_light.state:  # False = Red
+            return
+                
         # 3. Traffic
         if any(isinstance(obj, Car) for obj in next_cell_contents):
             return
