@@ -41,6 +41,10 @@ class CityModel(Model):
                         self.schedule.add(agent)
                         self.traffic_lights.append(agent)
 
+                        # also place a road agent in the same position
+                        agent = Road(f"r_{r*self.width+c}", self, direction="Vertical" if col == "S" else "Horizontal")
+                        self.grid.place_agent(agent, (c, self.height - r - 1))  
+
                     elif col == "#":
                         agent = Obstacle(f"ob_{r*self.width+c}", self)
                         self.grid.place_agent(agent, (c, self.height - r - 1))
