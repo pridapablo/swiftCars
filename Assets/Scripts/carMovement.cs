@@ -10,26 +10,26 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class MatrixMovement : MonoBehaviour
+public class CarMovement : MonoBehaviour
 {
     // adds a header to the inspector for the car variables
-    [Header ("Car Movement")]
-    [SerializeField] Vector3 displacement; 
-    [SerializeField] float carScale; 
+    [Header("Car Movement")]
+    [SerializeField] Vector3 displacement;
+    [SerializeField] float carScale;
 
-    [Header ("Wheels")] // adds a header to the inspector for the wheel variables
+    [Header("Wheels")] // adds a header to the inspector for the wheel variables
     [SerializeField] Vector3 wheelScale;
     [SerializeField] GameObject wheelPrefab; // adds a field to the inspector for the wheel prefab, 
     //the wheel is the one created on the previos homework.
     [SerializeField] List<Vector3> wheels; // position of the wheels
 
 
-    [Header ("Movement Interpolation")]
+    [Header("Movement Interpolation")]
     [SerializeField] Vector3 StartPos; // adds a field to the inspector for the start position
     [SerializeField] Vector3 StopPos; // adds a field to the inspector for the stop position
-    [SerializeField] float MotionTime; 
+    [SerializeField] float MotionTime;
     [SerializeField] List<Vector3> Waypoints;
-    
+
     Mesh mesh; // creates a mesh variable
     Vector3[] oldVertices; // creates a vector3 array for the base vertices
     Vector3[] newVertices; // creates a vector3 array for the new vertices
@@ -39,63 +39,69 @@ public class MatrixMovement : MonoBehaviour
 
     private List<GameObject> wheelObjects = new List<GameObject>(); // creates a list of game objects for the wheels
 
-    void Start() 
+    void Start()
     {
         mesh = GetComponentInChildren<MeshFilter>().mesh; // gets the mesh component of the car
         oldVertices = mesh.vertices; // gets the vertices of the mesh and stores it in the oldVertices array
         newVertices = new Vector3[oldVertices.Length]; // creates a new array for the new vertices
         wheelMesh = new List<Mesh>(); // creates a new list of meshes for the wheels
-        oldWheelVertices = new List<Vector3[]>(); 
+        oldWheelVertices = new List<Vector3[]>();
         newWheelVertices = new List<Vector3[]>();
 
-        foreach (Vector3 wheelPos in wheels){
-            GameObject wheel = Instantiate(wheelPrefab, new Vector3(0,0,0), Quaternion.identity); // instantiates the wheel prefab
+        foreach (Vector3 wheelPos in wheels)
+        {
+            GameObject wheel = Instantiate(wheelPrefab, new Vector3(0, 0, 0), Quaternion.identity); // instantiates the wheel prefab
             wheelObjects.Add(wheel); // adds the wheel to the list of wheel objects
         }
 
         // for each wheel object, it gets the mesh component and stores it in the wheelMesh list
-        for (int i = 0; i < wheelObjects.Count; i++){ 
+        for (int i = 0; i < wheelObjects.Count; i++)
+        {
             wheelMesh.Add(wheelObjects[i].GetComponentInChildren<MeshFilter>().mesh);
             oldWheelVertices.Add(wheelMesh[i].vertices);
             newWheelVertices.Add(new Vector3[oldWheelVertices[i].Length]);
         }
     }
 
-    void Update() {
+    void Update()
+    {
         Matrix4x4 carMatrix = Car(); // gets the car matrix
         DoTransformCar(carMatrix); // transforms the car
-        for (int i = 0; i < wheelObjects.Count; i++) { // for each wheel, it gets the wheel matrix and transforms it
+        for (int i = 0; i < wheelObjects.Count; i++)
+        { // for each wheel, it gets the wheel matrix and transforms it
             DoTransformWheels(Wheel(carMatrix, i), i);
         }
-}
+    }
 
     // creates a matrix for the car
-    Matrix4x4 Car(){
-        Matrix4x4 moveObject = HW_Transforms.TranslationMat(displacement.x*Time.time,
-                                                    displacement.y*Time.time,
-                                                    displacement.z*Time.time);
+    Matrix4x4 Car()
+    {
+        Matrix4x4 moveObject = HW_Transforms.TranslationMat(displacement.x * Time.time,
+                                                    displacement.y * Time.time,
+                                                    displacement.z * Time.time);
         Matrix4x4 scale = HW_Transforms.ScaleMat(carScale, carScale, carScale);
-            float angle = Mathf.Atan2(displacement.x, displacement.z) * Mathf.Rad2Deg;
-            Matrix4x4 rotate = HW_Transforms.RotateMat(angle, AXIS.Y);
-            Matrix4x4 composite = moveObject * rotate * scale;
+        float angle = Mathf.Atan2(displacement.x, displacement.z) * Mathf.Rad2Deg;
+        Matrix4x4 rotate = HW_Transforms.RotateMat(angle, AXIS.Y);
+        Matrix4x4 composite = moveObject * rotate * scale;
         return composite;
     }
 
 
-// creates a matrix for the wheels
-    Matrix4x4 Wheel(Matrix4x4 carComposite, int wheelIndex){
+    // creates a matrix for the wheels
+    Matrix4x4 Wheel(Matrix4x4 carComposite, int wheelIndex)
+    {
         Matrix4x4 scale = HW_Transforms.ScaleMat(wheelScale.x, wheelScale.y, wheelScale.z); // scales the wheels
         Matrix4x4 initialRotate = HW_Transforms.RotateMat(90, AXIS.Y); // rotates the wheels when they appear 
-        Matrix4x4 rotate = HW_Transforms.RotateMat(90 * Time.time, AXIS.X); 
+        Matrix4x4 rotate = HW_Transforms.RotateMat(90 * Time.time, AXIS.X);
         Matrix4x4 move = HW_Transforms.TranslationMat(wheels[wheelIndex].x, wheels[wheelIndex].y, wheels[wheelIndex].z);
         Matrix4x4 composite = carComposite * move * rotate * initialRotate * scale;
         return composite;
     }
 
-// car transformation (mesh update)
-    void DoTransformCar(Matrix4x4 carComposite) 
+    // car transformation (mesh update)
+    void DoTransformCar(Matrix4x4 carComposite)
     {
-        for (int i = 0; i < newVertices.Length; i++) 
+        for (int i = 0; i < newVertices.Length; i++)
         {
             Vector4 temp = new Vector4(oldVertices[i].x,
                                     oldVertices[i].y,
@@ -107,8 +113,9 @@ public class MatrixMovement : MonoBehaviour
         mesh.RecalculateNormals();
     }
 
-// wheel transformation (mesh update)
-    void DoTransformWheels(Matrix4x4 wheelComposite, int wheelIndex){
+    // wheel transformation (mesh update)
+    void DoTransformWheels(Matrix4x4 wheelComposite, int wheelIndex)
+    {
         for (int j = 0; j < newWheelVertices[wheelIndex].Length; j++)
         {
             Vector4 temp = new Vector4(oldWheelVertices[wheelIndex][j].x,
