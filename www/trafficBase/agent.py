@@ -1,4 +1,4 @@
-from mesa import Agent, Model
+from mesa import Agent
 from mesa.space import MultiGrid
 
 class PriorityQueue:
@@ -64,11 +64,11 @@ def get_neighbors(grid: MultiGrid, pos):
     neighbors = []
 
     # Assuming grid is a MultiGrid object
-    current_cell_contents = grid.get_cell_list_contents([pos])
+    current_next_cell_contents = grid.get_cell_list_contents([pos])
 
     # Check if current cell contains a road with a direction
     current_direction = None
-    for obj in current_cell_contents:
+    for obj in current_next_cell_contents:
         if isinstance(obj, Road):  # Replace 'Road' with your road class
             current_direction = obj.direction  # Assuming road objects have a 'direction' attribute
 
@@ -77,7 +77,7 @@ def get_neighbors(grid: MultiGrid, pos):
         all_neighbors = grid.get_neighborhood(pos, moore=True, include_center=False)
 
         # Filter based on the direction
-        # Assuming directions are 'Left', 'Right', 'Up', 'Down'
+        # Directions: Left, Right, Up, Down, Vertical, Horizontal
         if current_direction == 'Left':
             neighbors = [(nx, ny) for nx, ny in all_neighbors if nx < x]
         elif current_direction == 'Right':
@@ -86,6 +86,10 @@ def get_neighbors(grid: MultiGrid, pos):
             neighbors = [(nx, ny) for nx, ny in all_neighbors if ny > y]
         elif current_direction == 'Down':
             neighbors = [(nx, ny) for nx, ny in all_neighbors if ny < y]
+        elif current_direction == 'Vertical':
+            neighbors = [(nx, ny) for nx, ny in all_neighbors if nx == x]
+        elif current_direction == 'Horizontal':
+            neighbors = [(nx, ny) for nx, ny in all_neighbors if ny == y]
     else:
         # If the current cell does not contain a road, get all neighbors
         neighbors = grid.get_neighborhood(pos, moore=True, include_center=False)
@@ -119,39 +123,6 @@ class Car(Agent):
         Finds the path to the destination using A*
         """
 
-        matrix = self.model.grid
-        def print_grid(multigrid):
-            # Mapping of direction to arrow symbols
-            direction_arrows = {
-                "Left": "←",
-                "Right": "→",
-                "Up": "↑",
-                "Down": "↓"
-            }
-
-            for y in range(multigrid.height - 1, -1, -1):  # Start from the top row
-                for x in range(multigrid.width):
-                    cell_contents = multigrid.get_cell_list_contents([(x, y)])
-
-                    # Check if the cell contains any Car agents
-                    car_agents = [agent for agent in cell_contents if isinstance(agent, Car)]
-                    if car_agents:
-                        # If there's a car, represent it with '⊙'
-                        print('⊙', end=' ')
-                    else:
-                        # Check if the cell contains any Road agents
-                        road_agents = [agent for agent in cell_contents if isinstance(agent, Road)]
-                        if road_agents:
-                            # Assuming one road per cell, modify if needed
-                            road = road_agents[0]
-                            print(direction_arrows.get(road.direction, '?'), end=' ')
-                        else:
-                            print('.', end=' ')  # '.' represents an empty cell
-                print()  # Newline after each row
-
-
-        print_grid(matrix)
-
         start = self.pos # Current position
         end = self.destination.get_position()
 
@@ -174,7 +145,7 @@ class Car(Agent):
             return True
         
         # Find the path using A* algorithm
-        self.path = a_star_search(matrix, start, end, is_path_clear)
+        self.path = a_star_search(self.model.grid, start, end, is_path_clear)
 
         if len(self.path) == 0:
             print(f"Agent {self.unique_id} could not find a path to {end}")
@@ -182,62 +153,55 @@ class Car(Agent):
         # Convert path to list of tuples and return it
         return self.path
     
-    def is_turn_approaching(self):
-        # Check the next few steps in the path for a turn
-        look_ahead_distance = 3  # Number of steps to look ahead
-        for i in range(1, min(look_ahead_distance, len(self.path))):
-            current_direction = self.get_direction(self.pos, self.path[i - 1])
-            next_direction = self.get_direction(self.path[i - 1], self.path[i])
-            if current_direction != next_direction:
-                return True
-        return False
-    
-    @staticmethod
-    def get_direction(from_cell, to_cell):
-        dx, dy = to_cell[0] - from_cell[0], to_cell[1] - from_cell[1]
-        if abs(dx) > abs(dy):
-            return "Horizontal" if dx > 0 else "Vertical"
-        else:
-            return "Vertical" if dy > 0 else "Horizontal"
-        
     @staticmethod
     def validate_road_direction(current_road, next_road, current_pos, next_pos):
+        # Check if there is no movement
+        if current_pos == next_pos:
+            print(f"No movement from {current_pos} to {next_pos}, forcing path recalculation.")
+            return False # No movement
+
+        def is_valid_direction(road, x, y, nx, ny):
+            directions = {
+                "Left": nx < x,
+                "Right": nx > x,
+                "Up": ny > y,
+                "Down": ny < y,
+                "Vertical": nx == x,
+                "Horizontal": ny == y
+            }
+            return directions.get(road.direction, True)
+
         x, y = current_pos
         nx, ny = next_pos
 
         # Validate direction of the current road
-        if current_road.direction == "Left" and nx >= x:
-            return False
-        if current_road.direction == "Right" and nx <= x:
-            return False
-        if current_road.direction == "Up" and ny <= y:
-            return False
-        if current_road.direction == "Down" and ny >= y:
+        if not is_valid_direction(current_road, x, y, nx, ny):
             return False
 
         # Validate direction of the next road only if next_road is not None
-        if next_road is not None:
-            if next_road.direction == "Left" and nx >= x:
-                return False
-            if next_road.direction == "Right" and nx <= x:
-                return False
-            if next_road.direction == "Up" and ny <= y:
-                return False
-            if next_road.direction == "Down" and ny >= y:
-                return False
+        if next_road is not None and not is_valid_direction(next_road, x, y, nx, ny):
+            return False
 
         return True
-    
+
     def move(self):
+        # print(f"Agent @ {self.pos}: next cell: {self.path[0] if self.path else None} | path: {self.path}")
         if len(self.path) == 0:
             self.find_path()
             return
         
-        next_cell = self.path.pop(0)
-        cell_contents = self.model.grid.get_cell_list_contents([next_cell])
+        current_cell_contents = self.model.grid.get_cell_list_contents([self.pos])
+        next_cell = self.path[0]
+        next_cell_contents = self.model.grid.get_cell_list_contents([next_cell])
 
-        # Check if the agent has arrived at the correct destination
-        for obj in cell_contents:
+        # 1. Traffic lights
+        traffic_light = next((obj for obj in next_cell_contents if isinstance(obj, Traffic_Light)), None)
+        if traffic_light and not traffic_light.state:  # Assuming False means red
+            print(f"Agent {self.unique_id} is waiting for the traffic light.")
+            return
+
+        # 2. Destination
+        for obj in current_cell_contents:
             if isinstance(obj, Destination):
                 if obj == self.destination:
                     print(f"Agent {self.unique_id} has arrived at its destination.")
@@ -250,62 +214,45 @@ class Car(Agent):
                     self.find_path()
                     return
 
-        # Check for a red traffic light
-        traffic_light = next((obj for obj in cell_contents if isinstance(obj, Traffic_Light)), None)
-        if traffic_light and not traffic_light.state:  # Assuming False means red
-            print(f"Agent {self.unique_id} is waiting for the traffic light.")
+        # 3. Traffic
+        if any(isinstance(obj, Car) for obj in next_cell_contents):
             return
+        
+        # 4. Road direction validation
+        road = next((obj for obj in next_cell_contents if isinstance(obj, Road)), None) # this is an object
 
-        # Check for the presence of a road and validate its direction
-        road = next((obj for obj in cell_contents if isinstance(obj, Road)), None)
-        if road or isinstance(obj, Destination) or (traffic_light and traffic_light.state):  # Road, destination or green traffic light
-            if road:
-                next_road = next((obj for obj in self.model.grid.get_cell_list_contents([next_cell]) if isinstance(obj, Road)), None)
-                # Validate the direction of the road
-                correct_direction = self.validate_road_direction(road, next_road, self.pos, next_cell)
-                if not correct_direction:
-                    print(f"Agent {self.unique_id} is trying to move to {next_cell} but the road direction is {road.direction}")
-                    self.path = []
-                    self.find_path()
-                    return
+        if road:
+            next_road = next((obj for obj in self.model.grid.get_cell_list_contents([next_cell]) if isinstance(obj, Road)), None)
 
-            # Check for car presence in the next cell
-            if any(isinstance(obj, Car) for obj in cell_contents):
-                print(f"Agent {self.unique_id} is waiting due to traffic ahead.")
+            # Validate the direction of the road
+            correct_direction = self.validate_road_direction(road, next_road, self.pos, next_cell)
+
+            if not correct_direction:
+                print(f"Path is invalid, forcing recalculation.")
+                self.path = []
+                self.find_path()
                 return
 
-            # Handle upcoming turns
-            if self.is_turn_approaching():
-                self.model.grid.move_agent(self, next_cell)
-                return
-
-            # If all checks pass, move to the next cell
+        # All checks have passed, move to the next cell if exists
+        if next_cell:
             self.model.grid.move_agent(self, next_cell)
+            self.path.pop(0) # Remove the first element from the path since the agent has moved to that cell
         else:
-            print(f"Agent {self.unique_id} cannot move to {next_cell} as it is not a valid cell for movement.")
+            print(f"Recalculating path for agent {self.unique_id} no next cell found.")
             self.path = []
             self.find_path()
-
+        
 
     def step(self):
         """ 
         Determines the new direction it will take, and then moves
         """
         # Agent design:
-        # 2. If semaphores are red, wait (unless i'm super greedy and i see no cars)
-        # 3. Agents will always leave a gap of 1 cell between them and the next
-        #    car (unless i'm super greedy)
-        # 4. What happens with road direction when calculating the path?
-        # 5. Even if the path says to go to a cell, move needs to check if the
-        #    direction is correct and if the cell is empty (neighbor cars)
-        # 6. Communication between agents? Turn signals?
-        # 7. Deal with congested roads (agent has own memory of the last x
-        #    steps)
-        # 9. Agents only change lanes if they will turn in the next
-        #    intersection
-        # Ya son proactivos
-        
-        # Falta paciencia (reactividad) 
+        # - Congestion/Change lanes with A* blocking (agent has own memory of the last x
+        #    steps and based on greedy value, will change lanes if it's
+        #    stuck)... proactivity
+        # - Communication between agents Turn signals reactivity (if they
+        #   respect other's turn signals)
 
         self.move()
 
@@ -325,42 +272,84 @@ class Traffic_Light(Agent):
         """
         self.state = state
         self.axis = "x" if state else "y"
-        self.direction = None
+        self.direction = False
         self.timeToChange = timeToChange
+
+    def set_direction(self, same_cell_road, adjacent_roads):
+        if same_cell_road and adjacent_roads:
+            # Check if all adjacent roads have the same direction
+            if all(road.direction == adjacent_roads[0].direction for road in adjacent_roads):
+                self.direction = True
+                same_cell_road.direction = adjacent_roads[0].direction
+                print(f"Traffic Light @ {self.pos}: Direction set to {same_cell_road.direction} (based on adjacent roads)")
+            else:
+                # Handle the case where adjacent roads have different directions
+                self.determine_direction_based_on_axis(same_cell_road)
+        
+
+    def determine_direction_based_on_axis(self, same_cell_road):
+        # Print the initial axis and position
+
+        # Use get_neighborhood to get the coordinates of the Von Neumann neighbors
+        neighboring_positions = self.model.grid.get_neighborhood(self.pos, moore=False, include_center=False)
+
+        axis_roads = []
+        for pos in neighboring_positions:
+            cell_contents = self.model.grid.get_cell_list_contents(pos)
+
+            has_traffic_light = any(isinstance(obj, Traffic_Light) for obj in cell_contents)
+            if has_traffic_light:
+                continue
+
+            for obj in cell_contents:
+                if isinstance(obj, Road):
+                    axis_roads.append(obj)
+
+        # If there are roads in the axis direction, set the direction of the traffic light
+        if axis_roads:
+            # Set the direction based on the axis
+            if self.axis == 'y':
+                # Filter roads with vertical direction (Up or Down)
+                vertical_roads = [road for road in axis_roads if road.direction in ['Up', 'Down']]
+                if vertical_roads:
+                    # Use the direction of the first vertical road found
+                    self.direction = True
+                    same_cell_road.direction = vertical_roads[0].direction
+            else:
+                # Filter roads with horizontal direction (Left or Right)
+                horizontal_roads = [road for road in axis_roads if road.direction in ['Left', 'Right']]
+                if horizontal_roads:
+                    # Use the direction of the first horizontal road found
+                    self.direction = True
+                    same_cell_road.direction = horizontal_roads[0].direction
+
+            print(f"Traffic Light @ {self.pos}: Direction set to {same_cell_road.direction} (based on axis)")
+        else:
+            print(f"Traffic Light @ {self.pos}: No axis roads found")
 
     def step(self):
         """ 
         To change the state (green or red) of the traffic light in case you consider the time to change of each traffic light.
         """
         if not self.direction:
-            # Use adjacent cells to determine the direction of the traffic
-            # light (filter out cells that don't contain a road)
-            adjacent_roads = [obj for obj in self.model.grid.get_neighbors(self.pos, moore=False) if isinstance(obj, Road)]
-            # Check if there are more than 2 roads adjacent to the traffic
-            # light
-            
-            if all(road.direction == adjacent_roads[0].direction for road in adjacent_roads):
-                self.direction = adjacent_roads[0].direction
-            else:
-                # Assume the direction of the road that has my axis using my
-                # pos +/- 1 (e.g. if my axis is x, check the cell to my left
-                # and right)
-                if self.axis == "x":
-                    # Check from the list of adjacent roads which one has the
-                    # same x value as the traffic light
-                    road = next((road for road in adjacent_roads if road.pos[0] == self.pos[0]), None)
-                    if road:
-                        self.direction = road.direction
-                elif self.axis == "y":
-                    # Check from the list of adjacent roads which one has the
-                    # same y value as the traffic light
-                    road = next((road for road in adjacent_roads if road.pos[1] == self.pos[1]), None)
-                    if road:
-                        self.direction = road.direction
-                        
-            
-        # print(f"Traffic light is facing {self.direction}")
-                    
+            # Getting adjacent roads but excluding the road on the same cell as the traffic light
+            adjacent_cells_contents = [self.model.grid.get_cell_list_contents([pos]) 
+                                       for pos in self.model.grid.get_neighborhood(self.pos, moore=False)]
+
+            # Flatten the list of lists and then filter for Road objects excluding the current cell
+            adjacent_roads = [obj for sublist in adjacent_cells_contents for obj in sublist 
+                              if isinstance(obj, Road) and obj.pos != self.pos]
+
+            # Get contents of the same cell
+            same_cell_contents = self.model.grid.get_cell_list_contents([self.pos])
+
+            # Filter for Road objects in the same cell
+            this_cell_road = next((obj for obj in same_cell_contents if isinstance(obj, Road)), None) # this is an object
+
+            # Check and update direction if all adjacent roads have the same direction
+            # and there is a road on the same cell
+            self.set_direction(this_cell_road, adjacent_roads)  
+
         # Change the state of the traffic light
         if self.model.schedule.steps % self.timeToChange == 0:
             self.state = not self.state
