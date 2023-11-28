@@ -14,7 +14,6 @@ public class CarMovement : MonoBehaviour
 {
     // adds a header to the inspector for the car variables
     [Header("Car Movement")]
-    [SerializeField] Vector3 displacement;
     [SerializeField] float carScale;
 
     [Header("Wheels")] // adds a header to the inspector for the wheel variables
@@ -22,20 +21,15 @@ public class CarMovement : MonoBehaviour
     [SerializeField] GameObject wheelPrefab; // adds a field to the inspector for the wheel prefab, 
     //the wheel is the one created on the previos homework.
     [SerializeField] List<Vector3> wheels; // position of the wheels
-
-
-    [Header("Movement Interpolation")]
-    [SerializeField] Vector3 StartPos; // adds a field to the inspector for the start position
-    [SerializeField] Vector3 StopPos; // adds a field to the inspector for the stop position
-    [SerializeField] float MotionTime;
-    [SerializeField] List<Vector3> Waypoints;
-
     Mesh mesh; // creates a mesh variable
     Vector3[] oldVertices; // creates a vector3 array for the base vertices
     Vector3[] newVertices; // creates a vector3 array for the new vertices
     List<Mesh> wheelMesh; // creates a list of meshes for the wheels
     List<Vector3[]> oldWheelVertices; // creates a list of vector3 arrays for the starting vertices of the wheels
     List<Vector3[]> newWheelVertices; // creates a list of vector3 arrays for the new vertices of the wheels
+
+    private Vector3 current = new Vector3(0, 0, 0); // current position of the car
+    private Vector3 target = new Vector3(0, 0, 0); // target of the car
 
     private List<GameObject> wheelObjects = new List<GameObject>(); // creates a list of game objects for the wheels
 
@@ -62,32 +56,54 @@ public class CarMovement : MonoBehaviour
             newWheelVertices.Add(new Vector3[oldWheelVertices[i].Length]);
         }
     }
-
-    void Update()
+    public void SetTarget(Vector3 newTarget, float duration)
     {
-        Matrix4x4 carMatrix = Car(); // gets the car matrix
-        DoTransformCar(carMatrix); // transforms the car
-        for (int i = 0; i < wheelObjects.Count; i++)
-        { // for each wheel, it gets the wheel matrix and transforms it
-            DoTransformWheels(Wheel(carMatrix, i), i);
+        if (!this.target.Equals(newTarget)) // Check if the target is really new
+        {
+            current = this.target; // Update current since we are moving from current to new target
+            this.target = newTarget; // Set new target
         }
     }
 
-    // creates a matrix for the car
-    Matrix4x4 Car()
+    public void Move(float dt)
     {
-        Matrix4x4 moveObject = HW_Transforms.TranslationMat(displacement.x * Time.time,
-                                                    displacement.y * Time.time,
-                                                    displacement.z * Time.time);
+        // Ensure dt is clamped between 0 and 1
+        dt = Mathf.Clamp(dt, 0, 1);
+
+        // Interpolate position based on dt
+        Vector3 interpolatedPosition = Vector3.Lerp(current, target, dt);
+
+        if (dt >= 1)
+        {
+            // Transition manually to avoid overshooting
+            current = target;
+        }
+
+        Matrix4x4 carMatrix = Car(interpolatedPosition); // Pass interpolatedPosition to Car
+        DoTransformCar(carMatrix);
+
+        for (int i = 0; i < wheelObjects.Count; i++)
+        {
+            Matrix4x4 wheelMatrix = Wheel(carMatrix, i);
+            DoTransformWheels(wheelMatrix, i);
+        }
+    }
+
+    // creates a composite matrix for the car
+    Matrix4x4 Car(Vector3 interpolatedPosition)
+    {
+        Matrix4x4 moveObject = HW_Transforms.TranslationMat(interpolatedPosition.x,
+                                                            interpolatedPosition.y,
+                                                            interpolatedPosition.z);
+
         Matrix4x4 scale = HW_Transforms.ScaleMat(carScale, carScale, carScale);
-        float angle = Mathf.Atan2(displacement.x, displacement.z) * Mathf.Rad2Deg;
+        float angle = Mathf.Atan2(target.x - current.x, target.z - current.z) * Mathf.Rad2Deg;
         Matrix4x4 rotate = HW_Transforms.RotateMat(angle, AXIS.Y);
         Matrix4x4 composite = moveObject * rotate * scale;
         return composite;
     }
 
-
-    // creates a matrix for the wheels
+    // creates a composite matrix for the wheels
     Matrix4x4 Wheel(Matrix4x4 carComposite, int wheelIndex)
     {
         Matrix4x4 scale = HW_Transforms.ScaleMat(wheelScale.x, wheelScale.y, wheelScale.z); // scales the wheels

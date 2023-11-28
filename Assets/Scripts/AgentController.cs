@@ -54,11 +54,7 @@ public class AgentController : MonoBehaviour
     string sendConfigEndpoint = "/init";
     string updateEndpoint = "/update";
     public SimulationData simulationData;
-
-    Dictionary<string, Vector3> prevPositions, currPositions;
-
-
-    bool updated = false, started = false;
+    bool updated = false;
 
     public GameObject carPrefab, obstaclePrefab, floor, trafficLightPrefab, roadPrefab, destinationPrefab;
     public float timeToUpdate = 5.0f;
@@ -68,9 +64,6 @@ public class AgentController : MonoBehaviour
     {
         // Initializes
         simulationData = new SimulationData();
-
-        currPositions = new Dictionary<string, Vector3>();
-        prevPositions = new Dictionary<string, Vector3>();
 
         // floor.transform.localScale = new Vector3((float)width/10, 1, (float)height/10);
         // floor.transform.localPosition = new Vector3((float)width/2-0.5f, 0, (float)height/2-0.5f);
@@ -83,30 +76,26 @@ public class AgentController : MonoBehaviour
 
     private void Update()
     {
-        if (timer < 0)
+        if (timer <= 0)
         {
             timer = timeToUpdate;
             updated = false;
             StartCoroutine(UpdateSimulation());
         }
+        else
+        {
+            timer -= Time.deltaTime;
+        }
 
         if (updated)
         {
-            timer -= Time.deltaTime;
             dt = 1.0f - (timer / timeToUpdate);
-
-            foreach (var carEntry in currPositions)
+            foreach (PosData carPos in simulationData.carPos)
             {
-                string carId = carEntry.Key;
-                Vector3 currentPosition = carEntry.Value;
-                Vector3 previousPosition = prevPositions[carId];
-
-                Vector3 interpolatedPosition = Vector3.Lerp(previousPosition, currentPosition, dt);
-                GameObject car = GameObject.Find(carId);
-                if (car != null)
-                {
-                    car.transform.position = interpolatedPosition;
-                }
+                GameObject car = GameObject.Find(carPos.id);
+                CarMovement carMovement = car.GetComponent<CarMovement>();
+                carMovement.SetTarget(new Vector3(carPos.x, carPos.y, carPos.z), timeToUpdate);
+                carMovement.Move(dt);
             }
         }
     }
@@ -149,10 +138,6 @@ public class AgentController : MonoBehaviour
                 Debug.LogError("www.downloadHandler.text is null");
                 yield break; // Stop the coroutine if data is null
             }
-            else
-            {
-                Debug.Log("www.downloadHandler.text: " + www.downloadHandler.text);
-            }
 
             simulationData = JsonUtility.FromJson<SimulationData>(www.downloadHandler.text);
 
@@ -192,25 +177,17 @@ public class AgentController : MonoBehaviour
                 }
                 foreach (PosData carPos in simulationData.carPos)
                 {
-                    Vector3 newPosition = new Vector3(carPos.x, carPos.y, carPos.z);
-
-                    if (!prevPositions.ContainsKey(carPos.id))
+                    GameObject car = GameObject.Find(carPos.id);
+                    if (car == null)
                     {
-                        prevPositions[carPos.id] = newPosition;
-                        currPositions[carPos.id] = newPosition;
-                        Instantiate(carPrefab, newPosition, Quaternion.identity).name = carPos.id;
-                    }
-                    else
-                    {
-                        prevPositions[carPos.id] = currPositions[carPos.id];
-                        currPositions[carPos.id] = newPosition;
+                        car = Instantiate(carPrefab, new Vector3(carPos.x, carPos.y, carPos.z), Quaternion.identity);
+                        car.name = carPos.id;
                     }
                 }
 
             }
         }
         updated = true;
-        if (!started) started = true;
     }
 
     IEnumerator UpdateSimulation()
