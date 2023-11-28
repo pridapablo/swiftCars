@@ -5,6 +5,37 @@ from agent import *
 import os
 import json
 
+def print_grid(multigrid: MultiGrid):
+            # Mapping of direction to arrow symbols
+            direction_arrows = {
+                "Left": "←",
+                "Right": "→",
+                "Up": "↑",
+                "Down": "↓",
+                "Vertical": "|",
+                "Horizontal": "-"
+            }
+
+            for y in range(multigrid.height - 1, -1, -1):  # Start from the top row
+                for x in range(multigrid.width):
+                    next_cell_contents = multigrid.get_cell_list_contents([(x, y)])
+
+                    # Check if the cell contains any Car agents
+                    car_agents = [agent for agent in next_cell_contents if isinstance(agent, Car)]
+                    if car_agents:
+                        # If there's a car, represent it with '⊙'
+                        print('⊙', end=' ')
+                    else:
+                        # Check if the cell contains any Road agents
+                        road_agents = [agent for agent in next_cell_contents if isinstance(agent, Road)]
+                        if road_agents:
+                            # Assuming one road per cell, modify if needed
+                            road = road_agents[0]
+                            print(direction_arrows.get(road.direction, '?'), end=' ')
+                        else:
+                            print('.', end=' ')  # '.' represents an empty cell
+                print()  # Newline after each row
+
 class CityModel(Model):
     """ 
         Creates a model based on a city map.
@@ -75,6 +106,7 @@ class CityModel(Model):
         '''Advance the model by one step.'''
         # Check if current step is a multiple of 10
         if self.schedule.steps % 10 == 0:
+            
             all_corners_filled = True  # Assume all corners are filled initially
 
             for corner in self.corners:
@@ -90,7 +122,6 @@ class CityModel(Model):
                     self.grid.place_agent(agent, corner)
                     self.schedule.add(agent)
                     self.num_agents += 1
-                    print(f"Added car {self.num_agents} at corner {corner}")
                 else:
                     print(f"Corner {corner} is already filled")
 
@@ -99,6 +130,8 @@ class CityModel(Model):
                 print("All corners are filled. Halting the model.")
                 self.running = False
 
+            # Print the grid
+            print_grid(self.grid)
 
         # Proceed with the rest of the step
         self.schedule.step()

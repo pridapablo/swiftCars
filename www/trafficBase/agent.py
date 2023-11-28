@@ -153,15 +153,6 @@ class Car(Agent):
         # Convert path to list of tuples and return it
         return self.path
     
-    
-    @staticmethod
-    def get_direction(from_cell, to_cell):
-        dx, dy = to_cell[0] - from_cell[0], to_cell[1] - from_cell[1]
-        if abs(dx) > abs(dy):
-            return "Horizontal" if dx > 0 else "Vertical"
-        else:
-            return "Vertical" if dy > 0 else "Horizontal"
-        
     @staticmethod
     def validate_road_direction(current_road, next_road, current_pos, next_pos):
         # Check if there is no movement
@@ -192,38 +183,6 @@ class Car(Agent):
             return False
 
         return True
-
-    
-    def print_grid(multigrid):
-            # Mapping of direction to arrow symbols
-            direction_arrows = {
-                "Left": "←",
-                "Right": "→",
-                "Up": "↑",
-                "Down": "↓",
-                "Vertical": "|",
-                "Horizontal": "-"
-            }
-
-            for y in range(multigrid.height - 1, -1, -1):  # Start from the top row
-                for x in range(multigrid.width):
-                    next_cell_contents = multigrid.get_cell_list_contents([(x, y)])
-
-                    # Check if the cell contains any Car agents
-                    car_agents = [agent for agent in next_cell_contents if isinstance(agent, Car)]
-                    if car_agents:
-                        # If there's a car, represent it with '⊙'
-                        print('⊙', end=' ')
-                    else:
-                        # Check if the cell contains any Road agents
-                        road_agents = [agent for agent in next_cell_contents if isinstance(agent, Road)]
-                        if road_agents:
-                            # Assuming one road per cell, modify if needed
-                            road = road_agents[0]
-                            print(direction_arrows.get(road.direction, '?'), end=' ')
-                        else:
-                            print('.', end=' ')  # '.' represents an empty cell
-                print()  # Newline after each row
 
     def move(self):
         # print(f"Agent @ {self.pos}: next cell: {self.path[0] if self.path else None} | path: {self.path}")
