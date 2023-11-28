@@ -253,7 +253,9 @@ class Car(Agent):
 
         # 3. Traffic
         if any(isinstance(obj, Car) for obj in next_cell_contents):
-            print(f"Agent {self.unique_id} is waiting due to traffic ahead.")
+            # TODO: if the car in front does not move for x steps, change lane
+            # TODO: Check if i've been waiting for x steps, if so, recalculate
+            # path setting the following cells as obstacles
             return
         
         # 4. Road direction validation
