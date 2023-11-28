@@ -77,7 +77,7 @@ def get_neighbors(grid: MultiGrid, pos):
         all_neighbors = grid.get_neighborhood(pos, moore=True, include_center=False)
 
         # Filter based on the direction
-        # Assuming directions are 'Left', 'Right', 'Up', 'Down'
+        # Directions: Left, Right, Up, Down, Vertical, Horizontal
         if current_direction == 'Left':
             neighbors = [(nx, ny) for nx, ny in all_neighbors if nx < x]
         elif current_direction == 'Right':
@@ -86,6 +86,10 @@ def get_neighbors(grid: MultiGrid, pos):
             neighbors = [(nx, ny) for nx, ny in all_neighbors if ny > y]
         elif current_direction == 'Down':
             neighbors = [(nx, ny) for nx, ny in all_neighbors if ny < y]
+        elif current_direction == 'Vertical':
+            neighbors = [(nx, ny) for nx, ny in all_neighbors if nx == x]
+        elif current_direction == 'Horizontal':
+            neighbors = [(nx, ny) for nx, ny in all_neighbors if ny == y]
     else:
         # If the current cell does not contain a road, get all neighbors
         neighbors = grid.get_neighborhood(pos, moore=True, include_center=False)
