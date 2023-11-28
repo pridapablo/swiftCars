@@ -131,7 +131,7 @@ class CityModel(Model):
                 self.running = False
 
             # Print the grid
-            print_grid(self.grid)
+            # print_grid(self.grid)
 
         # Proceed with the rest of the step
         self.schedule.step()

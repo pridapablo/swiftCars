@@ -19,7 +19,7 @@ class PriorityQueue:
 def heuristic(a, b):
     (x1, y1) = a
     (x2, y2) = b
-    return abs(x1 - x2) + abs(y1 - y2)
+    return abs(x1 - x2) + abs(y1 - y2) # Manhattan distance
 
 def a_star_search(grid_matrix: MultiGrid, start, goal, is_path_clear):
     #typeof start and goal: tuple (x, y)
@@ -38,7 +38,7 @@ def a_star_search(grid_matrix: MultiGrid, start, goal, is_path_clear):
 
         for next in get_neighbors(grid_matrix, current):
             if not is_path_clear(grid_matrix, current, next):
-                continue
+                continue # Direction is not clear, skip this neighbor
             new_cost = cost_so_far[current] + 1
 
             # Check if the move is diagonal
@@ -149,6 +149,7 @@ class Car(Agent):
 
         if len(self.path) == 0:
             print(f"Agent {self.unique_id} could not find a path to {end}")
+            return # Don't store the path if it's empty
 
         # Convert path to list of tuples and return it
         return self.path
@@ -197,7 +198,6 @@ class Car(Agent):
         # 1. Traffic lights
         traffic_light = next((obj for obj in next_cell_contents if isinstance(obj, Traffic_Light)), None)
         if traffic_light and not traffic_light.state:  # Assuming False means red
-            print(f"Agent {self.unique_id} is waiting for the traffic light.")
             return
 
         # 2. Destination
