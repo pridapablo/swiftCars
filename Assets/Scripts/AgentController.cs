@@ -54,10 +54,7 @@ public class AgentController : MonoBehaviour
     string sendConfigEndpoint = "/init";
     string updateEndpoint = "/update";
     public SimulationData simulationData;
-    Dictionary<string, GameObject> agents;
-    Dictionary<string, Vector3> prevPositions, currPositions;
-
-    bool updated = false, started = false;
+    bool updated = false;
 
     public GameObject carPrefab, obstaclePrefab, floor, trafficLightPrefab, roadPrefab, destinationPrefab;
     public float timeToUpdate = 5.0f;
@@ -67,11 +64,6 @@ public class AgentController : MonoBehaviour
     {
         // Initializes
         simulationData = new SimulationData();
-
-        // prevPositions = new Dictionary<string, Vector3>();
-        // currPositions = new Dictionary<string, Vector3>();
-
-        // agents = new Dictionary<string, GameObject>();
 
         // floor.transform.localScale = new Vector3((float)width/10, 1, (float)height/10);
         // floor.transform.localPosition = new Vector3((float)width/2-0.5f, 0, (float)height/2-0.5f);
@@ -84,34 +76,27 @@ public class AgentController : MonoBehaviour
 
     private void Update()
     {
-        if (timer < 0)
+        if (timer <= 0)
         {
             timer = timeToUpdate;
             updated = false;
             StartCoroutine(UpdateSimulation());
         }
+        else
+        {
+            timer -= Time.deltaTime;
+        }
 
         if (updated)
         {
-            timer -= Time.deltaTime;
             dt = 1.0f - (timer / timeToUpdate);
-
-            // // Iterates over the agents to update their positions.
-            // // The positions are interpolated between the previous and current positions.
-            // foreach (var agent in currPositions)
-            // {
-            //     Vector3 currentPosition = agent.Value;
-            //     Vector3 previousPosition = prevPositions[agent.Key];
-
-            //     Vector3 interpolated = Vector3.Lerp(previousPosition, currentPosition, dt);
-            //     Vector3 direction = currentPosition - interpolated;
-
-            //     agents[agent.Key].transform.localPosition = interpolated;
-            //     if (direction != Vector3.zero) agents[agent.Key].transform.rotation = Quaternion.LookRotation(direction);
-            // }
-
-            // float t = (timer / timeToUpdate);
-            // dt = t * t * ( 3f - 2f*t);
+            foreach (PosData carPos in simulationData.carPos)
+            {
+                GameObject car = GameObject.Find(carPos.id);
+                CarMovement carMovement = car.GetComponent<CarMovement>();
+                carMovement.SetTarget(new Vector3(carPos.x, carPos.y, carPos.z), timeToUpdate);
+                carMovement.Move(dt);
+            }
         }
     }
 
@@ -153,10 +138,6 @@ public class AgentController : MonoBehaviour
                 Debug.LogError("www.downloadHandler.text is null");
                 yield break; // Stop the coroutine if data is null
             }
-            else
-            {
-                Debug.Log("www.downloadHandler.text: " + www.downloadHandler.text);
-            }
 
             simulationData = JsonUtility.FromJson<SimulationData>(www.downloadHandler.text);
 
@@ -182,7 +163,9 @@ public class AgentController : MonoBehaviour
                 }
                 foreach (TrafficLightData trafficLightPos in simulationData.trafficLightPos)
                 {
-                    GameObject trafficLight = Instantiate(trafficLightPrefab, new Vector3(trafficLightPos.x, trafficLightPos.y, trafficLightPos.z), Quaternion.identity); ;
+                    GameObject trafficLight = Instantiate(trafficLightPrefab, new Vector3(trafficLightPos.x, trafficLightPos.y, trafficLightPos.z), Quaternion.identity);
+                    // and a road
+                    GameObject road = Instantiate(roadPrefab, new Vector3(trafficLightPos.x, trafficLightPos.y, trafficLightPos.z), Quaternion.identity);
                 }
             }
             else
@@ -200,16 +183,11 @@ public class AgentController : MonoBehaviour
                         car = Instantiate(carPrefab, new Vector3(carPos.x, carPos.y, carPos.z), Quaternion.identity);
                         car.name = carPos.id;
                     }
-                    else
-                    {
-                        car.transform.position = new Vector3(carPos.x, carPos.y, carPos.z);
-                    }
                 }
 
             }
         }
         updated = true;
-        if (!started) started = true;
     }
 
     IEnumerator UpdateSimulation()
