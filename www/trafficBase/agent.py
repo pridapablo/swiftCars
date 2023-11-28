@@ -216,9 +216,6 @@ class Car(Agent):
 
         # 3. Traffic
         if any(isinstance(obj, Car) for obj in next_cell_contents):
-            # TODO: if the car in front does not move for x steps, change lane
-            # TODO: Check if i've been waiting for x steps, if so, recalculate
-            # path setting the following cells as obstacles
             return
         
         # 4. Road direction validation
@@ -251,16 +248,11 @@ class Car(Agent):
         Determines the new direction it will take, and then moves
         """
         # Agent design:
-        # 3. Agents will always leave a gap of 1 cell between them and the next
-        #    car (unless i'm super greedy)?
-        # 6. Communication between agents? Turn signals?
-        # 7. Deal with congested roads (agent has own memory of the last x
-        #    steps)
-        # 9. Agents only change lanes if they will turn in the next
-        #    intersection
-        # Ya son proactivos
-        
-        # Falta paciencia (reactividad) 
+        # - Congestion/Change lanes with A* blocking (agent has own memory of the last x
+        #    steps and based on greedy value, will change lanes if it's
+        #    stuck)... proactivity
+        # - Communication between agents Turn signals reactivity (if they
+        #   respect other's turn signals)
 
         self.move()
 
