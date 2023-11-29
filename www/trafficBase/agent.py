@@ -19,9 +19,9 @@ class PriorityQueue:
 def heuristic(a, b):
     (x1, y1) = a
     (x2, y2) = b
-    return abs(x1 - x2) + abs(y1 - y2) # Manhattan distance
+    return abs(x1 - x2) + abs(y1 - y2)
 
-def a_star_search(grid_matrix: MultiGrid, start, goal, is_path_clear):
+def a_star_search(grid_matrix: MultiGrid, start, goal, is_path_clear, block_cells=None):
     #typeof start and goal: tuple (x, y)
     #typeof grid_matrix: mesa model grid
     
@@ -38,14 +38,20 @@ def a_star_search(grid_matrix: MultiGrid, start, goal, is_path_clear):
 
         for next in get_neighbors(grid_matrix, current):
             if not is_path_clear(grid_matrix, current, next):
-                continue # Direction is not clear, skip this neighbor
-            new_cost = cost_so_far[current] + 1
+                continue
+                        
+            new_cost = cost_so_far[current] + 1 # Euclidean distance is 1
 
             # Check if the move is diagonal
             dx = abs(next[0] - current[0])
             dy = abs(next[1] - current[1])
             if dx == 1 and dy == 1:
-                new_cost += 1  # Add extra cost for diagonal move
+                new_cost += 1  # extra cost for diagonal moves in euclidean distance
+
+            # Check if the move is blocked
+            if block_cells and next in block_cells:
+                new_cost += 1000  # extra cost for blocked cells
+
             if next not in cost_so_far or new_cost < cost_so_far[next]:
                 cost_so_far[next] = new_cost
                 priority = new_cost + heuristic(goal, next)
@@ -63,14 +69,14 @@ def get_neighbors(grid: MultiGrid, pos):
     x, y = pos
     neighbors = []
 
-    # Assuming grid is a MultiGrid object
-    current_cell_contents = grid.get_cell_list_contents([pos])
+    # Agent knows all road directions, so we can get them from the grid
+    current_next_cell_contents = grid.get_cell_list_contents([pos])
 
     # Check if current cell contains a road with a direction
     current_direction = None
-    for obj in current_cell_contents:
-        if isinstance(obj, Road):  
-            current_direction = obj.direction  # all road objects have a 'direction' attribute
+    for obj in current_next_cell_contents:
+        if isinstance(obj, Road):  # Replace 'Road' with your road class
+            current_direction = obj.direction  # Assuming road objects have a 'direction' attribute
 
     if current_direction:
         # Get all neighbors (Moore neighborhood)
@@ -115,12 +121,13 @@ class Car(Agent):
         super().__init__(unique_id, model)
         self.destination = destination
         self.path = []
-        # Randomly choose a greedyness value between 0 and 1
-        self.greedyness = self.random.random()
+        self.greedyness = self.random.random() # value between 0 and 1
+        self.position_history = [] # Determines if the agent is stuck
+        self.is_stuck = False
 
-    def find_path(self):
+    def find_path(self, block_cells=None):
         """ 
-        Finds the path to the destination using A*
+        Finds the path to the destination using A* checking road directions.
         """
 
         start = self.pos # Current position
@@ -134,26 +141,51 @@ class Car(Agent):
             for obj in next_cell_contents:
                 if isinstance(obj, Obstacle):
                     return False
+                
+            # Cells that are not my destination are also obstacles (or buildings, etc.)
+            for obj in next_cell_contents:
+                if isinstance(obj, Destination) and obj != self.destination:
+                    return False
 
             # Check for road directions
             current_road = next(filter(lambda obj: isinstance(obj, Road), grid.get_cell_list_contents([current_pos])), None)
             next_road = next(filter(lambda obj: isinstance(obj, Road), grid.get_cell_list_contents([next_pos])), None)
+
             if current_road:
                 return self.validate_road_direction(current_road, next_road, current_pos, next_pos)
 
             # Path is clear if none of the above conditions are met
             return True
         
-        # Find the path using A* algorithm
-        self.path = a_star_search(self.model.grid, start, end, is_path_clear)
+  
+        # Find the path using A* algorithm (block_cell is an optional parameter
+        # and will be passed as none if not provided)
+        self.path = a_star_search(self.model.grid, start, end, is_path_clear, block_cells)
 
         if len(self.path) == 0:
-            print(f"Agent {self.unique_id} could not find a path to {end}")
-            print(f"Keeping current path: {self.path}")
-            return # Don't store the path if it's empty
+            print(f"Agent {self.unique_id} could not find a path to {end}, keeping current path.")
+            return # Don't update the path if no path was found
 
         # Convert path to list of tuples and return it
         return self.path
+    
+    def update_position_history(self):
+        # Add the current position to the history
+        self.position_history.append(self.pos)
+
+        # At minimum greediness (close to 0), the history length will be approximately 5.
+        # At maximum greediness (close to 1), the history length will be 2. ​​
+        max_history_length = 5 - 3 * self.greedyness # factor of 3
+
+        # Keep only the last x positions
+        if len(self.position_history) > max_history_length:
+            self.position_history.pop(0)
+
+        # Check if the agent is stuck
+        if len(self.position_history) == max_history_length and len(set(self.position_history)) == 1:
+            self.is_stuck = True
+        else:
+            self.is_stuck = False
     
     @staticmethod
     def validate_road_direction(current_road, next_road, current_pos, next_pos):
@@ -187,6 +219,8 @@ class Car(Agent):
         return True
 
     def move(self):
+        self.update_position_history()
+        # print(f"Agent @ {self.pos}: next cell: {self.path[0] if self.path else None}")
         # 1. Destination
         current_cell_contents = self.model.grid.get_cell_list_contents([self.pos])
         for obj in current_cell_contents:
@@ -197,44 +231,54 @@ class Car(Agent):
                     self.model.schedule.remove(self)
                     return
                 else:
-                    print(f"Agent {self.unique_id} has arrived at a destination, but not its own.") # TODO: This can happen, why?
+                    print(f"Agent {self.unique_id} has arrived at a destination, but not its own.")
                     self.path = []
-                    self.find_path()
+                    self.find_path(block_cells=[self.pos]) # Exclude the destination from the path
                     return
                 
         # If the path is empty, find a new path since no destination was found
         if len(self.path) == 0:
             self.find_path()
+            return
         
         next_cell = self.path[0]
         next_cell_contents = self.model.grid.get_cell_list_contents([next_cell])
 
-        # 2. Traffic lights
-        traffic_light = next((obj for obj in next_cell_contents if isinstance(obj, Traffic_Light)), None)
-        if traffic_light and not traffic_light.state:  # False = Red
-            return
-                
-        # 3. Traffic
-        if any(isinstance(obj, Car) for obj in next_cell_contents):
-            return
-        
-        # 4. Road direction validation
-        road = next((obj for obj in next_cell_contents if isinstance(obj, Road)), None) # this is an object
-
-        if road:
-            next_road = next((obj for obj in self.model.grid.get_cell_list_contents([next_cell]) if isinstance(obj, Road)), None)
-
-            # Validate the direction of the road
-            correct_direction = self.validate_road_direction(road, next_road, self.pos, next_cell)
-
-            if not correct_direction:
-                print(f"Path is invalid, forcing recalculation.")
-                self.path = []
-                self.find_path()
-                return
-
-        # All checks have passed, move to the next cell if exists
         if next_cell:
+            # 2. Traffic lights
+            traffic_light = next((obj for obj in next_cell_contents if isinstance(obj, Traffic_Light)), None)
+            if traffic_light and not traffic_light.state:  # False = Red
+                return
+        
+            # 3. Stuck: recalculate path before moving
+            if self.is_stuck:
+                self.path = []
+                # coordinates of the blocking neighbor is next_cell
+                self.find_path(block_cells = [next_cell])
+
+            # 4. Change lane if too many cars in the same lane?
+
+
+            # 3. Traffic
+            if any(isinstance(obj, Car) for obj in next_cell_contents):
+                return # Won't move if there is a car in the next cell
+            
+            # 4. Road direction validation since the agent is moving
+            road = next((obj for obj in next_cell_contents if isinstance(obj, Road)), None) # this is an object
+
+            if road:
+                next_road = next((obj for obj in self.model.grid.get_cell_list_contents([next_cell]) if isinstance(obj, Road)), None)
+
+                # Validate the direction of the road
+                correct_direction = self.validate_road_direction(road, next_road, self.pos, next_cell)
+
+                if not correct_direction:
+                    print(f"Path is invalid, forcing recalculation.")
+                    self.path = []
+                    self.find_path(block_cells=[next_cell]) # Exclude the invalid cell from the path
+                    return
+
+            # All checks have passed, move to the next cell if exists
             self.model.grid.move_agent(self, next_cell)
             self.path.pop(0) # Remove the first element from the path since the agent has moved to that cell
         else:
@@ -248,11 +292,9 @@ class Car(Agent):
         Determines the new direction it will take, and then moves
         """
         # Agent design:
-        # - Congestion/Change lanes with A* blocking (agent has own memory of the last x
-        #    steps and based on greedy value, will change lanes if it's
-        #    stuck)... proactivity
-        # - Communication between agents Turn signals reactivity (if they
-        #   respect other's turn signals)
+        # - Force change lane (regardless of A*)
+        # - If add force change lane add turn signal (Maybe not necessary)
+        # - Add smart traffic lights - big fix
 
         self.move()
 
@@ -353,7 +395,6 @@ class Traffic_Light(Agent):
         # Change the state of the traffic light
         if self.model.schedule.steps % self.timeToChange == 0:
             self.state = not self.state
-
 class Destination(Agent):
     """
     Destination agent. Where each car should go.
@@ -371,11 +412,6 @@ class Destination(Agent):
             if isinstance(agent, Car) and agent.destination == self:
                 self.model.grid.remove_agent(agent)
                 self.model.schedule.remove(agent)
-        # if len(cell) > 1:
-        #     self.model.grid.remove_agent(cell[1])
-        #     # remove the car from the schedule
-        #     self.model.schedule.remove(cell[1])
-
 class Obstacle(Agent):
     """
     Obstacle agent. Just to add obstacles to the grid.
@@ -385,7 +421,6 @@ class Obstacle(Agent):
 
     def step(self):
         pass
-
 class Road(Agent):
     """
     Road agent. Determines where the cars can move, and in which direction.
