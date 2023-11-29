@@ -57,21 +57,22 @@ public class CarMovement : MonoBehaviour
             newWheelVertices.Add(new Vector3[oldWheelVertices[i].Length]);
         }
     }
-    public void SetTarget(Vector3 newTarget, float duration)
+    public bool SetTarget(Vector3 newTarget, float duration)
     {
         if (!this.target.Equals(newTarget)) // Check if the target is really new
         {
             current = this.target; // Update current since we are moving from current to new target
             this.target = newTarget; // Set new target
+            return true;
         }
         else
         {
-            previous = current;
-            current = target;
+            return false;
         }
+
     }
 
-    public void Move(float dt)
+    public void Move(float dt, bool isSame = false)
     {
         // Ensure dt is clamped between 0 and 1
         dt = Mathf.Clamp(dt, 0, 1);
@@ -79,13 +80,12 @@ public class CarMovement : MonoBehaviour
         // Interpolate position based on dt
         Vector3 interpolatedPosition = Vector3.Lerp(current, target, dt);
 
-        if (dt >= 1)
+        if (isSame)
         {
-            // Transition manually to avoid overshooting
-            current = target;
+            interpolatedPosition = target;
         }
 
-        Matrix4x4 carMatrix = Car(interpolatedPosition); // Pass interpolatedPosition to Car
+        Matrix4x4 carMatrix = Car(interpolatedPosition);
         DoTransformCar(carMatrix);
 
         for (int i = 0; i < wheelObjects.Count; i++)
@@ -103,15 +103,8 @@ public class CarMovement : MonoBehaviour
                                                             interpolatedPosition.z);
 
         Matrix4x4 scale = HW_Transforms.ScaleMat(carScale, carScale, carScale);
-        float angle = Mathf.Atan2(target.z - current.z, target.x - current.x) * Mathf.Rad2Deg;
-        angle -= 90; // Offset rotation
-
-        // If no movement, keep previous angle (previous)
-        // if (interpolatedPosition == Vector3.zero)
-        // {
-        //     angle = Mathf.Atan2(current.z - previous.z, current.x - previous.x) * Mathf.Rad2Deg;
-        //     angle -= 90; // Offset rotation
-        // }
+        float angle = Mathf.Atan2(target.x - current.x, target.z - current.z) * Mathf.Rad2Deg;
+        angle += 180; // Offset rotation
 
         Matrix4x4 rotate = HW_Transforms.RotateMat(angle, AXIS.Y);
         Matrix4x4 composite = moveObject * rotate * scale;

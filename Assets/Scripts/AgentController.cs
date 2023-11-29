@@ -94,8 +94,15 @@ public class AgentController : MonoBehaviour
             {
                 GameObject car = GameObject.Find(carPos.id);
                 CarMovement carMovement = car.GetComponent<CarMovement>();
-                carMovement.SetTarget(new Vector3(carPos.x, carPos.y, carPos.z), timeToUpdate);
-                carMovement.Move(dt);
+                bool shouldMove = carMovement.SetTarget(new Vector3(carPos.x, carPos.y, carPos.z), timeToUpdate);
+                if (shouldMove)
+                {
+                    carMovement.Move(dt);
+                }
+                else
+                {
+                    carMovement.Move(dt, true);
+                }
             }
         }
     }
