@@ -22,9 +22,13 @@ def print_grid(multigrid: MultiGrid):
 
                     # Check if the cell contains any Car agents
                     car_agents = [agent for agent in next_cell_contents if isinstance(agent, Car)]
+                    destination_agents = [agent for agent in next_cell_contents if isinstance(agent, Destination)]
                     if car_agents:
                         # If there's a car, represent it with '⊙'
                         print('⊙', end=' ')
+                    elif destination_agents:
+                        # If there's a destination, represent it with 'D'
+                        print('D', end=' ')
                     else:
                         # Check if the cell contains any Road agents
                         road_agents = [agent for agent in next_cell_contents if isinstance(agent, Road)]
@@ -104,6 +108,9 @@ class CityModel(Model):
     
     def step(self):
         '''Advance the model by one step.'''
+        # Print the grid at step 2
+        if self.schedule.steps == 2:
+            print_grid(self.grid)
         # Check if current step is a multiple of 10
         if self.schedule.steps % 10 == 0:
             
@@ -129,9 +136,6 @@ class CityModel(Model):
             if all_corners_filled:
                 print("All corners are filled. Halting the model.")
                 self.running = False
-
-            # Print the grid
-            # print_grid(self.grid)
 
         # Proceed with the rest of the step
         self.schedule.step()
