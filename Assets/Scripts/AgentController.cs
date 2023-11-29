@@ -30,11 +30,15 @@ public class PosData
 public class TrafficLightData : PosData
 {
     public string state;
+    public string axis;
+    public string direction;
 
-    public TrafficLightData(string id, float x, float y, float z, string state)
+    public TrafficLightData(string id, float x, float y, float z, string state, string axis, string direction)
         : base(id, x, y, z) // Calls the constructor of PosData
     {
         this.state = state;
+        this.axis = axis;
+        this.direction = direction;
     }
 }
 
@@ -199,13 +203,35 @@ public class AgentController : MonoBehaviour
                 }
                 foreach (TrafficLightData trafficLightPos in simulationData.trafficLightPos)
                 {
-                    GameObject trafficLight = Instantiate(trafficLightPrefab, new Vector3(trafficLightPos.x, trafficLightPos.y, trafficLightPos.z), Quaternion.identity);
+                    string axis = trafficLightPos.axis;
+
+                    GameObject trafficLight = Instantiate(
+                        trafficLightPrefab,
+                        new Vector3(
+                            trafficLightPos.x,
+                            trafficLightPos.y,
+                            trafficLightPos.z
+                            ),
+                        Quaternion.identity
+                        );
+
                     trafficLight.name = trafficLightPos.id;
+
+                    // // Check if the axis is "y" and rotate accordingly
+                    if (axis == "y")
+                    {
+                        // Since they initially face -x, we rotate them 90 degrees around the y-axis to face +z
+                        trafficLight.transform.Rotate(0, 90, 0);
+                    }
+
                     trafficLights.Add(trafficLightPos.id, trafficLight);
+
                     // and a road
                     GameObject road = Instantiate(roadPrefab, new Vector3(trafficLightPos.x, trafficLightPos.y, trafficLightPos.z), Quaternion.identity);
                 }
             }
+
+
             else
             {
                 foreach (TrafficLightData trafficLightPos in simulationData.trafficLightPos)
@@ -219,6 +245,15 @@ public class AgentController : MonoBehaviour
                     GameObject trafficLight = trafficLights[trafficLightPos.id];
                     if (trafficLight != null)
                     {
+                        // if direction is "Right" rotate 180° so that the
+                        // light faces +x, if direction is "Down" rotate 180°
+                        // so that the light faces -z
+                        // if (trafficLightPos.direction == "Right" && trafficLightPos.axis == "x" ||
+                        //     trafficLightPos.direction == "Down" && trafficLightPos.axis == "y")
+                        // {
+                        //     trafficLight.transform.Rotate(0, 180, 0);
+                        // }
+
                         TrafficLightController trafficLightController = trafficLight.GetComponentInChildren<TrafficLightController>();
                         if (trafficLightController != null)
                         {

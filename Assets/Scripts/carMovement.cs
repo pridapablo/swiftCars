@@ -67,12 +67,10 @@ public class CarMovement : MonoBehaviour
     {
         if (newTarget == this.target) // If the new target is the same as the current or the target is the same as the current
         {
-            Debug.Log("Same target: " + newTarget);
             previous = this.current;
         }
         current = this.target; // Update current since we are moving from current to new target
         this.target = newTarget; // Set new target
-        Debug.Log("New target: " + newTarget);
     }
 
     public void Move(float dt)

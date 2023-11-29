@@ -65,7 +65,7 @@ def getAgents():
                     for z in range(cityModel.grid.height)
                     for obstacle in cityModel.grid.get_cell_list_contents((x, z))
                     if isinstance(obstacle, Obstacle)]
-        trafficLightPositions = [{"id": str(a.unique_id), "x": x, "y": 0, "z": z, "state": "red" if not a.state else "green"}
+        trafficLightPositions = [{"id": str(a.unique_id), "x": x, "y": 0, "z": z, "state": "red" if not a.state else "green", "axis": a.axis, "direction": a.direction}
                             for x in range(cityModel.grid.width)
                             for z in range(cityModel.grid.height)
                             for a in cityModel.grid.get_cell_list_contents((x, z))

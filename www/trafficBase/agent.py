@@ -322,14 +322,14 @@ class Traffic_Light(Agent):
         """
         self.state = state
         self.axis = "x" if state else "y"
-        self.direction = False
+        self.direction = None 
         self.timeToChange = timeToChange
 
     def set_direction(self, same_cell_road, adjacent_roads):
         if same_cell_road and adjacent_roads:
             # Check if all adjacent roads have the same direction
             if all(road.direction == adjacent_roads[0].direction for road in adjacent_roads):
-                self.direction = True
+                self.direction = adjacent_roads[0].direction
                 same_cell_road.direction = adjacent_roads[0].direction
                 # print(f"Traffic Light @ {self.pos}: Direction set to {same_cell_road.direction} (based on adjacent roads)")
             else:
@@ -363,14 +363,14 @@ class Traffic_Light(Agent):
                 vertical_roads = [road for road in axis_roads if road.direction in ['Up', 'Down']]
                 if vertical_roads:
                     # Use the direction of the first vertical road found
-                    self.direction = True
+                    self.direction = vertical_roads[0].direction
                     same_cell_road.direction = vertical_roads[0].direction
             else:
                 # Filter roads with horizontal direction (Left or Right)
                 horizontal_roads = [road for road in axis_roads if road.direction in ['Left', 'Right']]
                 if horizontal_roads:
                     # Use the direction of the first horizontal road found
-                    self.direction = True
+                    self.direction = horizontal_roads[0].direction
                     same_cell_road.direction = horizontal_roads[0].direction
 
             # print(f"Traffic Light @ {self.pos}: Direction set to {same_cell_road.direction} (based on axis)")
