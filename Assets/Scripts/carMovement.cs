@@ -30,6 +30,7 @@ public class CarMovement : MonoBehaviour
 
     private Vector3 current = new Vector3(0, 0, 0); // current position of the car
     private Vector3 target = new Vector3(0, 0, 0); // target of the car
+    private Vector3 previous = new Vector3(0, 0, 0); // previous position of the car
 
     private List<GameObject> wheelObjects = new List<GameObject>(); // creates a list of game objects for the wheels
 
@@ -56,30 +57,29 @@ public class CarMovement : MonoBehaviour
             newWheelVertices.Add(new Vector3[oldWheelVertices[i].Length]);
         }
     }
-    public void SetTarget(Vector3 newTarget, float duration)
+    public void SetTarget(Vector3 newTarget)
     {
-        if (!this.target.Equals(newTarget)) // Check if the target is really new
+        if (newTarget == this.target) // If the new target is the same as the current or the target is the same as the current
         {
-            current = this.target; // Update current since we are moving from current to new target
-            this.target = newTarget; // Set new target
+            Debug.Log("Same target: " + newTarget);
+            previous = this.current;
         }
+        current = this.target; // Update current since we are moving from current to new target
+        this.target = newTarget; // Set new target
+        Debug.Log("New target: " + newTarget);
     }
 
     public void Move(float dt)
     {
-        // Ensure dt is clamped between 0 and 1
-        dt = Mathf.Clamp(dt, 0, 1);
-
         // Interpolate position based on dt
         Vector3 interpolatedPosition = Vector3.Lerp(current, target, dt);
 
-        if (dt >= 1)
+        if (current == Vector3.zero) // If current is zero, we just placed the car
         {
-            // Transition manually to avoid overshooting
-            current = target;
+            interpolatedPosition = target;
         }
 
-        Matrix4x4 carMatrix = Car(interpolatedPosition); // Pass interpolatedPosition to Car
+        Matrix4x4 carMatrix = Car(interpolatedPosition);
         DoTransformCar(carMatrix);
 
         for (int i = 0; i < wheelObjects.Count; i++)
@@ -97,7 +97,15 @@ public class CarMovement : MonoBehaviour
                                                             interpolatedPosition.z);
 
         Matrix4x4 scale = HW_Transforms.ScaleMat(carScale, carScale, carScale);
-        float angle = Mathf.Atan2(target.x - current.x, target.z - current.z) * Mathf.Rad2Deg;
+        float angle = Mathf.Atan2(target.x - current.x, current.z - target.z) * Mathf.Rad2Deg;
+
+        if (current == target) // If current is equal to target, we are not moving
+        {
+            angle = Mathf.Atan2(previous.x, previous.z) * Mathf.Rad2Deg;
+        }
+
+        angle += 180; // Offset rotation
+
         Matrix4x4 rotate = HW_Transforms.RotateMat(angle, AXIS.Y);
         Matrix4x4 composite = moveObject * rotate * scale;
         return composite;
@@ -108,7 +116,7 @@ public class CarMovement : MonoBehaviour
     {
         Matrix4x4 scale = HW_Transforms.ScaleMat(wheelScale.x, wheelScale.y, wheelScale.z); // scales the wheels
         Matrix4x4 initialRotate = HW_Transforms.RotateMat(90, AXIS.Y); // rotates the wheels when they appear 
-        Matrix4x4 rotate = HW_Transforms.RotateMat(90 * Time.time, AXIS.X);
+        Matrix4x4 rotate = HW_Transforms.RotateMat(-90 * Time.time, AXIS.X);
         Matrix4x4 move = HW_Transforms.TranslationMat(wheels[wheelIndex].x, wheels[wheelIndex].y, wheels[wheelIndex].z);
         Matrix4x4 composite = carComposite * move * rotate * initialRotate * scale;
         return composite;
