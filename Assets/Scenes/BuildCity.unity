@@ -158,8 +158,8 @@ Camera:
   m_GameObject: {fileID: 136675311}
   m_Enabled: 1
   serializedVersion: 2
-  m_ClearFlags: 1
-  m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
+  m_ClearFlags: 2
+  m_BackGroundColor: {r: 0, g: 0, b: 0, a: 0}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
@@ -243,8 +243,8 @@ Light:
   serializedVersion: 10
   m_Type: 1
   m_Shape: 0
-  m_Color: {r: 1, g: 0.95686275, b: 0.8392157, a: 1}
-  m_Intensity: 1
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Intensity: 0.1
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
@@ -303,7 +303,7 @@ Transform:
   m_GameObject: {fileID: 395527429}
   serializedVersion: 2
   m_LocalRotation: {x: 0.40821788, y: -0.23456968, z: 0.10938163, w: 0.8754261}
-  m_LocalPosition: {x: 0, y: 3, z: 0}
+  m_LocalPosition: {x: 4.74, y: 12.76, z: -6.73}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -382,8 +382,10 @@ MonoBehaviour:
   floor: {fileID: 3817403350493948489, guid: 6e539cda17cb94676abe2eb6f808a514, type: 3}
   trafficLightPrefab: {fileID: 7358374230160051155, guid: 0cf4528aec38f43f4a4f1fc271b06e74, type: 3}
   roadPrefab: {fileID: 3240343348373693069, guid: 646fc54ff3078ce94bbdbd0f0d4c4a05, type: 3}
-  destinationPrefab: {fileID: 961990229689801968, guid: 0870e23a47df89e468e8af19c065fce0, type: 3}
-  timeToUpdate: 1
+  destinationPrefab: {fileID: 1775214147616637039, guid: c8b76dc87a45a4d5d83f3f5d6e8e13d0, type: 3}
+  timeToUpdate: 0.5
+  buildingTextures:
+  - {fileID: 2800000, guid: 494066359ee419ef6bfe26cdcc965997, type: 3}
 --- !u!850595691 &1515965292
 LightingSettings:
   m_ObjectHideFlags: 0

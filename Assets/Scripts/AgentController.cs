@@ -60,6 +60,8 @@ public class AgentController : MonoBehaviour
     public float timeToUpdate = 5.0f;
     private float timer, dt;
 
+    public Texture[] buildingTextures; // Assign this array in the inspector with your textures
+
     void Start()
     {
         // Initializes
@@ -104,7 +106,51 @@ public class AgentController : MonoBehaviour
                 carMovement.Move(dt);
             }
         }
+        // Call to update the traffic lights
+        UpdateTrafficLights();  
     }
+
+    private void AssignRandomTexture(GameObject building)
+    {
+        if (buildingTextures.Length > 0)
+        {
+            // Specify UnityEngine.Random to resolve the ambiguity
+            Texture selectedTexture = buildingTextures[UnityEngine.Random.Range(0, buildingTextures.Length)];
+            Renderer renderer = building.GetComponent<Renderer>();
+            if (renderer != null)
+            {
+                renderer.material.mainTexture = selectedTexture;
+            }
+            else
+            {
+                Debug.LogWarning("Renderer not found on building object");
+            }
+        }
+    }
+
+
+    // Add the method to handle traffic light updates
+    private void UpdateTrafficLights() {
+        foreach (TrafficLightData trafficLightData in simulationData.trafficLightPos) {
+            GameObject trafficLightObject = GameObject.Find(trafficLightData.id); 
+            if (trafficLightObject != null) {
+                TrafficLightController trafficLightController = trafficLightObject.GetComponent<TrafficLightController>();
+                if (trafficLightController != null) {
+                    trafficLightController.UpdateLight(trafficLightData.isGreen);
+
+                    // Optional: Debug log for confirmation
+                    Debug.Log("Updated Traffic Light: " + trafficLightData.id + " to " + (trafficLightData.isGreen ? "Green" : "Red"));
+                }
+                else {
+                    Debug.Log("Traffic Light Controller not found on object: " + trafficLightData.id);
+                }
+            }
+            else {
+                Debug.Log("Traffic Light GameObject not found: " + trafficLightData.id);
+            }
+        }
+}
+
 
     IEnumerator SendConfiguration()
     {
@@ -165,7 +211,8 @@ public class AgentController : MonoBehaviour
                 }
                 foreach (PosData obstaclePos in simulationData.obstaclePos)
                 {
-                    GameObject obstacle = Instantiate(obstaclePrefab, new Vector3(obstaclePos.x, obstaclePos.y, obstaclePos.z), Quaternion.identity); ;
+                    GameObject obstacle = Instantiate(obstaclePrefab, new Vector3(obstaclePos.x, obstaclePos.y, obstaclePos.z), Quaternion.identity); 
+                    AssignRandomTexture(obstacle); // Assign a random texture to the building
                 }
                 foreach (PosData roadPos in simulationData.roadPos)
                 {
@@ -174,6 +221,7 @@ public class AgentController : MonoBehaviour
                 foreach (TrafficLightData trafficLightPos in simulationData.trafficLightPos)
                 {
                     GameObject trafficLight = Instantiate(trafficLightPrefab, new Vector3(trafficLightPos.x, trafficLightPos.y, trafficLightPos.z), Quaternion.identity);
+                    trafficLight.name = trafficLightPos.id;
                     // and a road
                     GameObject road = Instantiate(roadPrefab, new Vector3(trafficLightPos.x, trafficLightPos.y, trafficLightPos.z), Quaternion.identity);
                 }
@@ -211,4 +259,3 @@ public class AgentController : MonoBehaviour
             StartCoroutine(GetData(false));
     }
 }
-
