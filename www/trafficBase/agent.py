@@ -1,5 +1,7 @@
 from mesa import Agent
 from mesa.space import MultiGrid
+import math
+
 
 class PriorityQueue:
     def __init__(self):
@@ -10,21 +12,21 @@ class PriorityQueue:
 
     def put(self, item, priority):
         self.elements.append((priority, item))
-        self.elements.sort(reverse=True)  # Sort in place, highest priority first
+        self.elements.sort()  # Sort in ascending order
 
     def get(self):
-        return self.elements.pop()[1]
+        return self.elements.pop(0)[1]  # Pop the element with the lowest priority
+
     
 # A* search algorithm
 def heuristic(a, b):
     (x1, y1) = a
     (x2, y2) = b
-    return abs(x1 - x2) + abs(y1 - y2)
+    return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
 
 def a_star_search(grid_matrix: MultiGrid, start, goal, is_path_clear, block_cells=None):
-    #typeof start and goal: tuple (x, y)
-    #typeof grid_matrix: mesa model grid
-    
+    print(f"Starting A* search from {start} to {goal}")
+
     frontier = PriorityQueue()
     frontier.put(start, 0)
     came_from = {start: None}
@@ -39,18 +41,15 @@ def a_star_search(grid_matrix: MultiGrid, start, goal, is_path_clear, block_cell
         for next in get_neighbors(grid_matrix, current):
             if not is_path_clear(grid_matrix, current, next):
                 continue
-                        
-            new_cost = cost_so_far[current] + 1 # Euclidean distance is 1
 
-            # Check if the move is diagonal
+            if block_cells and next in block_cells:
+                continue
+
+            new_cost = cost_so_far[current] + 1
             dx = abs(next[0] - current[0])
             dy = abs(next[1] - current[1])
             if dx == 1 and dy == 1:
-                new_cost += 1  # extra cost for diagonal moves in euclidean distance
-
-            # Check if the move is blocked
-            if block_cells and next in block_cells:
-                new_cost += 1000  # extra cost for blocked cells
+                new_cost += math.sqrt(2) - 1
 
             if next not in cost_so_far or new_cost < cost_so_far[next]:
                 cost_so_far[next] = new_cost
@@ -61,8 +60,16 @@ def a_star_search(grid_matrix: MultiGrid, start, goal, is_path_clear, block_cell
     path = []
     while current != start:
         path.append(current)
-        current = came_from[current]
-    path.reverse()  # reverse the path to start -> goal
+        current = came_from.get(current)
+    path.reverse()
+
+    if not path:
+        print("No path found!")
+    elif path[-1] != goal:
+        print(f"!!!!!!! Path does not reach the goal: {path[-1]} != {goal}")
+    else:
+        print(f"Path last cell: {path[-1]}")
+    
     return path
 
 def get_neighbors(grid: MultiGrid, pos):
@@ -96,6 +103,8 @@ def get_neighbors(grid: MultiGrid, pos):
             neighbors = [(nx, ny) for nx, ny in all_neighbors if nx == x]
         elif current_direction == 'Horizontal':
             neighbors = [(nx, ny) for nx, ny in all_neighbors if ny == y]
+        elif current_direction == 'Any':
+            neighbors = all_neighbors
     else:
         # If the current cell does not contain a road, get all neighbors
         neighbors = grid.get_neighborhood(pos, moore=True, include_center=False)
@@ -220,7 +229,6 @@ class Car(Agent):
 
     def move(self):
         self.update_position_history()
-        # print(f"Agent @ {self.pos}: next cell: {self.path[0] if self.path else None}")
         # 1. Destination
         current_cell_contents = self.model.grid.get_cell_list_contents([self.pos])
         for obj in current_cell_contents:
@@ -323,7 +331,7 @@ class Traffic_Light(Agent):
             if all(road.direction == adjacent_roads[0].direction for road in adjacent_roads):
                 self.direction = True
                 same_cell_road.direction = adjacent_roads[0].direction
-                print(f"Traffic Light @ {self.pos}: Direction set to {same_cell_road.direction} (based on adjacent roads)")
+                # print(f"Traffic Light @ {self.pos}: Direction set to {same_cell_road.direction} (based on adjacent roads)")
             else:
                 # Handle the case where adjacent roads have different directions
                 self.determine_direction_based_on_axis(same_cell_road)
@@ -365,7 +373,7 @@ class Traffic_Light(Agent):
                     self.direction = True
                     same_cell_road.direction = horizontal_roads[0].direction
 
-            print(f"Traffic Light @ {self.pos}: Direction set to {same_cell_road.direction} (based on axis)")
+            # print(f"Traffic Light @ {self.pos}: Direction set to {same_cell_road.direction} (based on axis)")
         else:
             print(f"Traffic Light @ {self.pos}: No axis roads found")
 
