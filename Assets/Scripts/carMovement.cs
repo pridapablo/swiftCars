@@ -28,9 +28,9 @@ public class CarMovement : MonoBehaviour
     List<Vector3[]> oldWheelVertices; // creates a list of vector3 arrays for the starting vertices of the wheels
     List<Vector3[]> newWheelVertices; // creates a list of vector3 arrays for the new vertices of the wheels
 
-    private Vector3 previous = new Vector3(0, 0, 0); // previous position of the car
     private Vector3 current = new Vector3(0, 0, 0); // current position of the car
     private Vector3 target = new Vector3(0, 0, 0); // target of the car
+    private Vector3 previous = new Vector3(0, 0, 0); // previous position of the car
 
     private List<GameObject> wheelObjects = new List<GameObject>(); // creates a list of game objects for the wheels
 
@@ -57,30 +57,24 @@ public class CarMovement : MonoBehaviour
             newWheelVertices.Add(new Vector3[oldWheelVertices[i].Length]);
         }
     }
-    public bool SetTarget(Vector3 newTarget, float duration)
+    public void SetTarget(Vector3 newTarget)
     {
-        if (!this.target.Equals(newTarget)) // Check if the target is really new
+        if (newTarget == this.target) // If the new target is the same as the current or the target is the same as the current
         {
-            current = this.target; // Update current since we are moving from current to new target
-            this.target = newTarget; // Set new target
-            return true;
+            Debug.Log("Same target: " + newTarget);
+            previous = this.current;
         }
-        else
-        {
-            return false;
-        }
-
+        current = this.target; // Update current since we are moving from current to new target
+        this.target = newTarget; // Set new target
+        Debug.Log("New target: " + newTarget);
     }
 
-    public void Move(float dt, bool isSame = false)
+    public void Move(float dt)
     {
-        // Ensure dt is clamped between 0 and 1
-        dt = Mathf.Clamp(dt, 0, 1);
-
         // Interpolate position based on dt
         Vector3 interpolatedPosition = Vector3.Lerp(current, target, dt);
 
-        if (isSame)
+        if (current == Vector3.zero) // If current is zero, we just placed the car
         {
             interpolatedPosition = target;
         }
@@ -104,6 +98,12 @@ public class CarMovement : MonoBehaviour
 
         Matrix4x4 scale = HW_Transforms.ScaleMat(carScale, carScale, carScale);
         float angle = Mathf.Atan2(target.x - current.x, current.z - target.z) * Mathf.Rad2Deg;
+
+        if (current == target) // If current is equal to target, we are not moving
+        {
+            angle = Mathf.Atan2(previous.x, previous.z) * Mathf.Rad2Deg;
+        }
+
         angle += 180; // Offset rotation
 
         Matrix4x4 rotate = HW_Transforms.RotateMat(angle, AXIS.Y);
