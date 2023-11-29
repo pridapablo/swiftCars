@@ -81,6 +81,12 @@ public class AgentController : MonoBehaviour
             timer = timeToUpdate;
             updated = false;
             StartCoroutine(UpdateSimulation());
+            foreach (PosData carPos in simulationData.carPos)
+            {
+                GameObject car = GameObject.Find(carPos.id);
+                CarMovement carMovement = car.GetComponent<CarMovement>();
+                carMovement.SetTarget(new Vector3(carPos.x, carPos.y, carPos.z));
+            }
         }
         else
         {
@@ -90,11 +96,11 @@ public class AgentController : MonoBehaviour
         if (updated)
         {
             dt = 1.0f - (timer / timeToUpdate);
+            dt = Mathf.Clamp(dt, 0.0f, 1.0f);
             foreach (PosData carPos in simulationData.carPos)
             {
                 GameObject car = GameObject.Find(carPos.id);
                 CarMovement carMovement = car.GetComponent<CarMovement>();
-                carMovement.SetTarget(new Vector3(carPos.x, carPos.y, carPos.z), timeToUpdate);
                 carMovement.Move(dt);
             }
         }
@@ -127,7 +133,10 @@ public class AgentController : MonoBehaviour
         UnityWebRequest www = UnityWebRequest.Get(serverUrl + getDataEP);
         yield return www.SendWebRequest();
         if (www.result != UnityWebRequest.Result.Success)
+        {
             Debug.Log(www.error);
+            updated = false;
+        }
         else
         {
             // Once the data has been received, it is stored in the CarsData variable.
@@ -144,6 +153,7 @@ public class AgentController : MonoBehaviour
             if (simulationData == null)
             {
                 Debug.LogError("Failed to parse SimulationData from JSON.");
+                updated = false;
                 yield break; // Stop the coroutine if data is null
             }
 
@@ -180,14 +190,14 @@ public class AgentController : MonoBehaviour
                     GameObject car = GameObject.Find(carPos.id);
                     if (car == null)
                     {
-                        car = Instantiate(carPrefab, new Vector3(carPos.x, carPos.y, carPos.z), Quaternion.identity);
+                        car = Instantiate(carPrefab, new Vector3(0, 0, 0), Quaternion.identity);
                         car.name = carPos.id;
                     }
                 }
 
             }
+            updated = true;
         }
-        updated = true;
     }
 
     IEnumerator UpdateSimulation()

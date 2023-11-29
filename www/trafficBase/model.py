@@ -13,7 +13,8 @@ def print_grid(multigrid: MultiGrid):
                 "Up": "↑",
                 "Down": "↓",
                 "Vertical": "|",
-                "Horizontal": "-"
+                "Horizontal": "-",
+                "Any": "+"
             }
 
             for y in range(multigrid.height - 1, -1, -1):  # Start from the top row
@@ -22,9 +23,13 @@ def print_grid(multigrid: MultiGrid):
 
                     # Check if the cell contains any Car agents
                     car_agents = [agent for agent in next_cell_contents if isinstance(agent, Car)]
+                    destination_agents = [agent for agent in next_cell_contents if isinstance(agent, Destination)]
                     if car_agents:
                         # If there's a car, represent it with '⊙'
                         print('⊙', end=' ')
+                    elif destination_agents:
+                        # If there's a destination, represent it with 'D'
+                        print('D', end=' ')
                     else:
                         # Check if the cell contains any Road agents
                         road_agents = [agent for agent in next_cell_contents if isinstance(agent, Road)]
@@ -54,6 +59,7 @@ class CityModel(Model):
             self.height = len(lines)
 
             self.corners = [(0, 0), (self.width - 1, 0), (0, self.height - 1), (self.width - 1, self.height - 1)]
+            self.cycle = 10
 
             self.traffic_lights = []
             self.grid = MultiGrid(self.width, self.height, torus=False)
@@ -62,7 +68,7 @@ class CityModel(Model):
             # Goes through each character in the map file and creates the corresponding agent.
             for r, row in enumerate(lines): 
                 for c, col in enumerate(row): 
-                    if col in ["v", "^", ">", "<"]:
+                    if col in ["v", "^", ">", "<","."]:
                         agent = Road(f"r_{r*self.width+c}", self, dataDictionary[col]) # recibe un id, el modelo y la dirección de la calle
                         self.grid.place_agent(agent, (c, self.height - r - 1))
 
@@ -89,6 +95,12 @@ class CityModel(Model):
         self.num_agents = 0
         self.running = True
 
+    def set_cycle(self, cycle):
+        self.cycle = cycle
+
+    def get_car_count(self):
+        return len([agent for agent in self.schedule.agents if isinstance(agent, Car)])
+
     # Function to find a random destination for the cars
     def find_destination(self):
         # Create an empty list to store destination agents
@@ -104,9 +116,12 @@ class CityModel(Model):
     
     def step(self):
         '''Advance the model by one step.'''
-        # Check if current step is a multiple of 10
-        if self.schedule.steps % 10 == 0:
-            
+        # Print the grid at step 2
+        if self.schedule.steps == 2:
+            print_grid(self.grid)
+
+        # Check if it's time to add a new car
+        if self.schedule.steps % self.cycle == 0:
             all_corners_filled = True  # Assume all corners are filled initially
 
             for corner in self.corners:
@@ -129,9 +144,6 @@ class CityModel(Model):
             if all_corners_filled:
                 print("All corners are filled. Halting the model.")
                 self.running = False
-
-            # Print the grid
-            # print_grid(self.grid)
 
         # Proceed with the rest of the step
         self.schedule.step()

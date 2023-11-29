@@ -77,12 +77,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 658e560c14722460eb227a6ce4d8e0e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  displacement: {x: 0, y: 0, z: 0}
   carScale: 0.2
   wheelScale: {x: 0.5, y: 0.5, z: 0.5}
   wheelPrefab: {fileID: 4791947155313901481, guid: e6c3b435f8a854bd8ac387a84dd2bcde, type: 3}
-  wheels: []
-  StartPos: {x: 0, y: 0, z: 0}
-  StopPos: {x: 0, y: 0, z: 0}
-  MotionTime: 0
-  Waypoints: []
+  wheels:
+  - {x: -1.2, y: 0.4, z: 1.7}
+  - {x: 1.2, y: 0.4, z: 1.7}
+  - {x: 1.3, y: 0.4, z: -2.2}
+  - {x: -1.3, y: 0.4, z: -2.2}
