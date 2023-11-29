@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 // Enumeration to define the axis
-public enum AXIS {X, Y, Z};
+public enum AXIS { X, Y, Z };
 // Values:        0  1  2
 
 public class HW_Transforms : MonoBehaviour
@@ -34,20 +34,25 @@ public class HW_Transforms : MonoBehaviour
 
 
         Matrix4x4 matrix = Matrix4x4.identity;
-        if (axis == AXIS.X) {
+        if (axis == AXIS.X)
+        {
             matrix[1, 1] = cosTheta;
-            matrix[1, 2] = -sinTheta;
-            matrix[2, 1] = sinTheta;
+            matrix[1, 2] = sinTheta;
+            matrix[2, 1] = -sinTheta;
             matrix[2, 2] = cosTheta;
 
-        } else if (axis == AXIS.Y) {
+        }
+        else if (axis == AXIS.Y)
+        {
             matrix[0, 0] = cosTheta;
-            matrix[0, 2] = sinTheta;
-            matrix[2, 0] = -sinTheta;
+            matrix[0, 2] = -sinTheta;
+            matrix[2, 0] = sinTheta;
             matrix[2, 2] = cosTheta;
 
 
-        } else if (axis == AXIS.Z) {
+        }
+        else if (axis == AXIS.Z)
+        {
             matrix[0, 0] = cosTheta;
             matrix[0, 1] = sinTheta;
             matrix[1, 0] = -sinTheta;

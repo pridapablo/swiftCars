@@ -28,6 +28,7 @@ public class CarMovement : MonoBehaviour
     List<Vector3[]> oldWheelVertices; // creates a list of vector3 arrays for the starting vertices of the wheels
     List<Vector3[]> newWheelVertices; // creates a list of vector3 arrays for the new vertices of the wheels
 
+    private Vector3 previous = new Vector3(0, 0, 0); // previous position of the car
     private Vector3 current = new Vector3(0, 0, 0); // current position of the car
     private Vector3 target = new Vector3(0, 0, 0); // target of the car
 
@@ -63,6 +64,11 @@ public class CarMovement : MonoBehaviour
             current = this.target; // Update current since we are moving from current to new target
             this.target = newTarget; // Set new target
         }
+        else
+        {
+            previous = current;
+            current = target;
+        }
     }
 
     public void Move(float dt)
@@ -97,7 +103,16 @@ public class CarMovement : MonoBehaviour
                                                             interpolatedPosition.z);
 
         Matrix4x4 scale = HW_Transforms.ScaleMat(carScale, carScale, carScale);
-        float angle = Mathf.Atan2(target.x - current.x, target.z - current.z) * Mathf.Rad2Deg;
+        float angle = Mathf.Atan2(target.z - current.z, target.x - current.x) * Mathf.Rad2Deg;
+        angle -= 90; // Offset rotation
+
+        // If no movement, keep previous angle (previous)
+        // if (interpolatedPosition == Vector3.zero)
+        // {
+        //     angle = Mathf.Atan2(current.z - previous.z, current.x - previous.x) * Mathf.Rad2Deg;
+        //     angle -= 90; // Offset rotation
+        // }
+
         Matrix4x4 rotate = HW_Transforms.RotateMat(angle, AXIS.Y);
         Matrix4x4 composite = moveObject * rotate * scale;
         return composite;
@@ -108,7 +123,7 @@ public class CarMovement : MonoBehaviour
     {
         Matrix4x4 scale = HW_Transforms.ScaleMat(wheelScale.x, wheelScale.y, wheelScale.z); // scales the wheels
         Matrix4x4 initialRotate = HW_Transforms.RotateMat(90, AXIS.Y); // rotates the wheels when they appear 
-        Matrix4x4 rotate = HW_Transforms.RotateMat(90 * Time.time, AXIS.X);
+        Matrix4x4 rotate = HW_Transforms.RotateMat(-90 * Time.time, AXIS.X);
         Matrix4x4 move = HW_Transforms.TranslationMat(wheels[wheelIndex].x, wheels[wheelIndex].y, wheels[wheelIndex].z);
         Matrix4x4 composite = carComposite * move * rotate * initialRotate * scale;
         return composite;
