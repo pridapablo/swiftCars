@@ -8,6 +8,8 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Networking;
+using System.Linq;
+
 
 [Serializable]
 public class PosData
@@ -27,12 +29,12 @@ public class PosData
 [Serializable]
 public class TrafficLightData : PosData
 {
-    public bool isGreen;
+    public string state;
 
-    public TrafficLightData(string id, float x, float y, float z, bool isGreen)
+    public TrafficLightData(string id, float x, float y, float z, string state)
         : base(id, x, y, z) // Calls the constructor of PosData
     {
-        this.isGreen = isGreen;
+        this.state = state;
     }
 }
 
@@ -62,13 +64,16 @@ public class AgentController : MonoBehaviour
 
     public Texture[] buildingTextures; // Assign this array in the inspector with your textures
 
+    Dictionary<string, GameObject> cars = new Dictionary<string, GameObject>();
+    Dictionary<string, GameObject> trafficLights = new Dictionary<string, GameObject>();
+
     void Start()
     {
         // Initializes
         simulationData = new SimulationData();
-
-        // floor.transform.localScale = new Vector3((float)width/10, 1, (float)height/10);
-        // floor.transform.localPosition = new Vector3((float)width/2-0.5f, 0, (float)height/2-0.5f);
+        // Init the car dictionary
+        cars = new Dictionary<string, GameObject>();
+        trafficLights = new Dictionary<string, GameObject>();
 
         timer = timeToUpdate;
 
@@ -106,8 +111,6 @@ public class AgentController : MonoBehaviour
                 carMovement.Move(dt);
             }
         }
-        // Call to update the traffic lights
-        UpdateTrafficLights();  
     }
 
     private void AssignRandomTexture(GameObject building)
@@ -127,30 +130,6 @@ public class AgentController : MonoBehaviour
             }
         }
     }
-
-
-    // Add the method to handle traffic light updates
-    private void UpdateTrafficLights() {
-        foreach (TrafficLightData trafficLightData in simulationData.trafficLightPos) {
-            GameObject trafficLightObject = GameObject.Find(trafficLightData.id); 
-            if (trafficLightObject != null) {
-                TrafficLightController trafficLightController = trafficLightObject.GetComponent<TrafficLightController>();
-                if (trafficLightController != null) {
-                    trafficLightController.UpdateLight(trafficLightData.isGreen);
-
-                    // Optional: Debug log for confirmation
-                    Debug.Log("Updated Traffic Light: " + trafficLightData.id + " to " + (trafficLightData.isGreen ? "Green" : "Red"));
-                }
-                else {
-                    Debug.Log("Traffic Light Controller not found on object: " + trafficLightData.id);
-                }
-            }
-            else {
-                Debug.Log("Traffic Light GameObject not found: " + trafficLightData.id);
-            }
-        }
-}
-
 
     IEnumerator SendConfiguration()
     {
@@ -211,7 +190,7 @@ public class AgentController : MonoBehaviour
                 }
                 foreach (PosData obstaclePos in simulationData.obstaclePos)
                 {
-                    GameObject obstacle = Instantiate(obstaclePrefab, new Vector3(obstaclePos.x, obstaclePos.y, obstaclePos.z), Quaternion.identity); 
+                    GameObject obstacle = Instantiate(obstaclePrefab, new Vector3(obstaclePos.x, obstaclePos.y, obstaclePos.z), Quaternion.identity);
                     AssignRandomTexture(obstacle); // Assign a random texture to the building
                 }
                 foreach (PosData roadPos in simulationData.roadPos)
@@ -222,6 +201,7 @@ public class AgentController : MonoBehaviour
                 {
                     GameObject trafficLight = Instantiate(trafficLightPrefab, new Vector3(trafficLightPos.x, trafficLightPos.y, trafficLightPos.z), Quaternion.identity);
                     trafficLight.name = trafficLightPos.id;
+                    trafficLights.Add(trafficLightPos.id, trafficLight);
                     // and a road
                     GameObject road = Instantiate(roadPrefab, new Vector3(trafficLightPos.x, trafficLightPos.y, trafficLightPos.z), Quaternion.identity);
                 }
@@ -230,9 +210,33 @@ public class AgentController : MonoBehaviour
             {
                 foreach (TrafficLightData trafficLightPos in simulationData.trafficLightPos)
                 {
-                    // GameObject trafficLight = GameObject.Find(trafficLightPos.id);
-                    // trafficLight.GetComponent<TrafficLight>().isGreen = trafficLightPos.isGreen;
+                    if (!trafficLights.ContainsKey(trafficLightPos.id))
+                    {
+                        Debug.LogError("Traffic light not found: " + trafficLightPos.id);
+                        continue;
+                    }
+
+                    GameObject trafficLight = trafficLights[trafficLightPos.id];
+                    if (trafficLight != null)
+                    {
+                        TrafficLightController trafficLightController = trafficLight.GetComponentInChildren<TrafficLightController>();
+                        if (trafficLightController != null)
+                        {
+                            Debug.Log("Setting traffic light: " + trafficLightPos.id + " to state: " + trafficLightPos.state);
+                            trafficLightController.SetState(trafficLightPos.state);
+                        }
+                        else
+                        {
+                            Debug.LogError("TrafficLightController component not found on traffic light: " + trafficLightPos.id);
+                        }
+                    }
+                    else
+                    {
+                        Debug.LogError("Traffic light GameObject is null for ID: " + trafficLightPos.id);
+                    }
                 }
+
+                // First, ensure all cars in simulationData.carPos are created or found
                 foreach (PosData carPos in simulationData.carPos)
                 {
                     GameObject car = GameObject.Find(carPos.id);
@@ -240,7 +244,31 @@ public class AgentController : MonoBehaviour
                     {
                         car = Instantiate(carPrefab, new Vector3(0, 0, 0), Quaternion.identity);
                         car.name = carPos.id;
+                        cars.Add(carPos.id, car);
                     }
+                }
+
+                // Next, check and remove any cars that are not in simulationData.carPos
+                List<string> carIdsToRemove = new List<string>();
+                foreach (KeyValuePair<string, GameObject> carEntry in cars)
+                {
+                    if (!simulationData.carPos.Any(posData => posData.id == carEntry.Key))
+                    {
+                        carIdsToRemove.Add(carEntry.Key);
+                    }
+                }
+
+                foreach (string carId in carIdsToRemove)
+                {
+                    GameObject car = cars[carId];
+                    CarMovement carMovement = car.GetComponent<CarMovement>();
+                    List<GameObject> wheels = carMovement.GetWheelObjects();
+                    foreach (GameObject wheel in wheels)
+                    {
+                        Destroy(wheel);
+                    }
+                    cars.Remove(carId);
+                    Destroy(car);
                 }
 
             }

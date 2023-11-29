@@ -34,6 +34,11 @@ public class CarMovement : MonoBehaviour
 
     private List<GameObject> wheelObjects = new List<GameObject>(); // creates a list of game objects for the wheels
 
+    public List<GameObject> GetWheelObjects() // returns the list of wheel objects
+    {
+        return wheelObjects;
+    }
+
     void Start()
     {
         mesh = GetComponentInChildren<MeshFilter>().mesh; // gets the mesh component of the car
@@ -57,6 +62,7 @@ public class CarMovement : MonoBehaviour
             newWheelVertices.Add(new Vector3[oldWheelVertices[i].Length]);
         }
     }
+
     public void SetTarget(Vector3 newTarget)
     {
         if (newTarget == this.target) // If the new target is the same as the current or the target is the same as the current

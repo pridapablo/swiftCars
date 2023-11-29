@@ -4,28 +4,32 @@ using UnityEngine;
 
 public class TrafficLightController : MonoBehaviour
 {
-    public Material greenLightMaterial;
-    public Material redLightMaterial;
-    private Renderer lightRenderer;
+    private string state;
+    private Light trafficLight; // Reference to the Light component
 
+    // Start is called before the first frame update
     void Start()
     {
-        lightRenderer = GetComponent<Renderer>();
-        if (lightRenderer == null)
-        {
-            Debug.LogError("No Renderer component found on " + gameObject.name);
-        }
+        trafficLight = this.GetComponent<Light>();
     }
 
-    public void UpdateLight(bool isGreen)
+    public void SetState(string newState)
     {
-        if (lightRenderer != null)
+        state = newState;
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        if (state == "red")
         {
-            lightRenderer.material = isGreen ? greenLightMaterial : redLightMaterial;
+            // Set the light component's color to red
+            trafficLight.color = Color.red;
         }
         else
         {
-            Debug.LogError("Renderer is not initialized on " + gameObject.name);
+            // Set the light component's color to green
+            trafficLight.color = Color.green;
         }
     }
 }
