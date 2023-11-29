@@ -103,7 +103,7 @@ public class CarMovement : MonoBehaviour
                                                             interpolatedPosition.z);
 
         Matrix4x4 scale = HW_Transforms.ScaleMat(carScale, carScale, carScale);
-        float angle = Mathf.Atan2(target.x - current.x, target.z - current.z) * Mathf.Rad2Deg;
+        float angle = Mathf.Atan2(target.x - current.x, current.z - target.z) * Mathf.Rad2Deg;
         angle += 180; // Offset rotation
 
         Matrix4x4 rotate = HW_Transforms.RotateMat(angle, AXIS.Y);

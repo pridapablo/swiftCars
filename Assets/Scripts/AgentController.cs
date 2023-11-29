@@ -187,7 +187,7 @@ public class AgentController : MonoBehaviour
                     GameObject car = GameObject.Find(carPos.id);
                     if (car == null)
                     {
-                        car = Instantiate(carPrefab, new Vector3(carPos.x, carPos.y, carPos.z), Quaternion.identity);
+                        car = Instantiate(carPrefab, new Vector3(0, 0, 0), Quaternion.identity);
                         car.name = carPos.id;
                     }
                 }
