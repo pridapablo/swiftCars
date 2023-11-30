@@ -207,7 +207,7 @@ public class AgentController : MonoBehaviour
 
     private void UpdateSimulationFromData()
     {
-        // This block will run only once after the second update
+        // This block will run only once at mesa step 1
         if (simulationUpdateCounter == 1 && !trafficLightsOriented)
         {
             foreach (TrafficLightData trafficLightPos in simulationData.trafficLightPos)
