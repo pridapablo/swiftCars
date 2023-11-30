@@ -2,7 +2,6 @@ from flask import Flask, request, jsonify
 from model import CityModel
 from agent import Car, Traffic_Light, Obstacle, Road, Destination
 import argparse
-import threading
 from mesa.visualization import CanvasGrid, ModularServer
 
 # Model configuration
