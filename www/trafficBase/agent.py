@@ -418,6 +418,7 @@ class Destination(Agent):
         cell = self.model.grid.get_cell_list_contents([self.pos])
         for agent in cell:
             if isinstance(agent, Car) and agent.destination == self:
+                self.model.add_complete_trip()
                 self.model.grid.remove_agent(agent)
                 self.model.schedule.remove(agent)
 class Obstacle(Agent):

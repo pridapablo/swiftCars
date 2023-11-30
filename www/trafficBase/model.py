@@ -61,6 +61,8 @@ class CityModel(Model):
             self.corners = [(0, 0), (self.width - 1, 0), (0, self.height - 1), (self.width - 1, self.height - 1)]
             self.cycle = 10
 
+            self.complete_trips = 0
+
             self.traffic_lights = []
             self.grid = MultiGrid(self.width, self.height, torus=False)
             self.schedule = RandomActivation(self)
@@ -91,7 +93,6 @@ class CityModel(Model):
                         self.grid.place_agent(agent, (c, self.height - r - 1))
                         self.schedule.add(agent)
 
-
         self.num_agents = 0
         self.running = True
 
@@ -101,6 +102,12 @@ class CityModel(Model):
     def get_car_count(self):
         return len([agent for agent in self.schedule.agents if isinstance(agent, Car)])
 
+    def add_complete_trip(self):
+        self.complete_trips += 1
+
+    def get_complete_trips(self):
+        return self.complete_trips
+    
     # Function to find a random destination for the cars
     def find_destination(self):
         # Create an empty list to store destination agents

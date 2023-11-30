@@ -21,15 +21,17 @@ def background_task(post_endpoint, periodicity):
         try:
             if cityModel:
                 car_count = cityModel.get_car_count()
+                total_trips = cityModel.get_complete_trips()
                 payload = {
-                    "año": 2023,
-                    "grupo": 301,
-                    "equipo": 2,
-                    "autos": car_count
+                    "year": 2023,
+                    "classroom": 301,
+                    "name": "Equipo 2: Swifties",
+                    "num_cars": car_count,
+                    "num_trips": total_trips,
                 }
                 print(f"Payload: {payload}")
                 response = requests.post(post_endpoint, json=payload)
-                print(f"Posted to {post_endpoint}: {response.status_code}")
+                print(f"Posted to {post_endpoint}: {response.status_code} {response.reason}")
         except Exception as e:
             print(f"Error during POST: {e}")
         time.sleep(periodicity)
@@ -136,6 +138,7 @@ if __name__=='__main__':
         '--postEP',
         dest='postEP',
         type=str,
+        default="http://52.1.3.19:8585/api/validate_attempt",
         help='The endpoint to post to.'
     )
     parser.add_argument(
