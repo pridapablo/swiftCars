@@ -123,13 +123,13 @@ class Car(Agent):
             destination: Where the agent should go (destination agent)
             path: The path the agent will follow to get to the destination
             (could be empty)
-            greedyness: How greedy the agent is (how proactive it is when
+            greediness: How greedy the agent is (how proactive it is when
             interacting with other agents) (0-1)
         """
         super().__init__(unique_id, model)
         self.destination = destination
         self.path = []
-        self.greedyness = self.random.random() # value between 0 and 1
+        self.greediness = self.random.random() # value between 0 and 1
         self.position_history = [] # Determines if the agent is stuck
         self.is_stuck = False
 
@@ -181,9 +181,9 @@ class Car(Agent):
         # Add the current position to the history
         self.position_history.append(self.pos)
 
-        # At minimum greediness (close to 0), the history length will be approximately 5.
-        # At maximum greediness (close to 1), the history length will be 2. ​​
-        max_history_length = 5 - 3 * self.greedyness # factor of 3
+        # At minimum greediness (close to 0), the history length will be approximately 4. ​​
+        # At maximum greediness (close to 1), the history length will be 1.
+        max_history_length = 4 - 3 * self.greediness
 
         # Keep only the last x positions
         if len(self.position_history) > max_history_length:
@@ -263,7 +263,10 @@ class Car(Agent):
                 # coordinates of the blocking neighbor is next_cell
                 self.find_path(block_cells = [next_cell])
 
-            # 4. Traffic
+            # 4. Change lane if too many cars in the same lane?
+
+
+            # 3. Traffic
             if any(isinstance(obj, Car) for obj in next_cell_contents):
                 return # Won't move if there is a car in the next cell
             
@@ -295,11 +298,6 @@ class Car(Agent):
         """ 
         Determines the new direction it will take, and then moves
         """
-        # Agent design:
-        # - Force change lane (regardless of A*)
-        # - If add force change lane add turn signal (Maybe not necessary)
-        # - Add smart traffic lights - big fix
-
         self.move()
 
 class Traffic_Light(Agent):
@@ -319,7 +317,7 @@ class Traffic_Light(Agent):
         self.state = state
         self.axis = "x" if state else "y"
         self.direction = None 
-        self.green_duration = 0
+        self.green_duration = 4 if state else 0
 
     def set_direction(self, same_cell_road, adjacent_roads):
         if same_cell_road and adjacent_roads:
@@ -410,7 +408,7 @@ class Traffic_Light(Agent):
         ## Smart traffic light
         car_count = 0
         # Get the neighboring positions with a radius of 5
-        for pos in self.model.grid.get_neighborhood(self.pos, moore=False, include_center=False, radius=5):
+        for pos in self.model.grid.get_neighborhood(self.pos, moore=False, include_center=False, radius=4):
             cell_contents = self.model.grid.get_cell_list_contents(pos)
 
             # Check for roads and their directions
@@ -422,7 +420,7 @@ class Traffic_Light(Agent):
         # Check for 4+ cars and change the light to green
         if car_count >= 4:
             self.state = True
-            self.green_duration = 5  # Set the green light duration
+            self.green_duration = 4  # Set the green light duration
 
         # Decrement green light duration and change back to red if duration is over
         if self.state and self.green_duration > 0:
