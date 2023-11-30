@@ -2,7 +2,6 @@ from mesa import Agent
 from mesa.space import MultiGrid
 import math
 
-
 class PriorityQueue:
     def __init__(self):
         self.elements = []

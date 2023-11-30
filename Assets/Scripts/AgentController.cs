@@ -117,6 +117,14 @@ public class AgentController : MonoBehaviour
         }
     }
 
+    // City generation methods
+    float GetRandomHeight()
+    {
+        // Replace min and max with your desired range
+        float minHeight = 2.0f; // Minimum height
+        float maxHeight = 5.0f; // Maximum height
+        return UnityEngine.Random.Range(minHeight, maxHeight);
+    }
     private void AssignRandomTexture(GameObject building)
     {
         if (buildingTextures.Length > 0)
@@ -135,7 +143,7 @@ public class AgentController : MonoBehaviour
         }
     }
 
-
+    // Server communication methods
     IEnumerator SendConfiguration()
     {
         /*
@@ -169,9 +177,6 @@ public class AgentController : MonoBehaviour
         }
         else
         {
-            // Once the data has been received, it is stored in the CarsData variable.
-            // Then, it iterates over the CarsData.positions list to update the
-            // agents positions
             if (www.downloadHandler.text == null)
             {
                 Debug.LogError("www.downloadHandler.text is null");
@@ -189,137 +194,137 @@ public class AgentController : MonoBehaviour
 
             if (firstTime)
             {
-                foreach (PosData destinationPos in simulationData.destinationPos)
-                {
-                    GameObject destination = Instantiate(destinationPrefab, new Vector3(destinationPos.x, destinationPos.y, destinationPos.z), Quaternion.identity); ;
-                }
-                foreach (PosData obstaclePos in simulationData.obstaclePos)
-                {
-                    GameObject obstacle = Instantiate(obstaclePrefab, new Vector3(obstaclePos.x, obstaclePos.y, obstaclePos.z), Quaternion.identity);
-                    AssignRandomTexture(obstacle); // Assign a random texture to the building
-                    // Apply random height
-                    float randomHeight = GetRandomHeight();
-                    Vector3 currentScale = obstacle.transform.localScale;
-                    obstacle.transform.localScale = new Vector3(currentScale.x, randomHeight, currentScale.z);
-                }
-                foreach (PosData roadPos in simulationData.roadPos)
-                {
-                    GameObject road = Instantiate(roadPrefab, new Vector3(roadPos.x, roadPos.y, roadPos.z), Quaternion.identity); ;
-                }
-                foreach (TrafficLightData trafficLightPos in simulationData.trafficLightPos)
-                {
-                    string axis = trafficLightPos.axis;
-
-                    GameObject trafficLight = Instantiate(
-                        trafficLightPrefab,
-                        new Vector3(
-                            trafficLightPos.x,
-                            trafficLightPos.y,
-                            trafficLightPos.z
-                            ),
-                        Quaternion.identity
-                        );
-
-                    trafficLight.name = trafficLightPos.id;
-
-                    // // Check if the axis is "y" and rotate accordingly
-                    if (axis == "y")
-                    {
-                        // Since they initially face -x, we rotate them 90 degrees around the y-axis to face +z
-                        trafficLight.transform.Rotate(0, 90, 0);
-                    }
-
-                    trafficLights.Add(trafficLightPos.id, trafficLight);
-
-                    // and a road
-                    GameObject road = Instantiate(roadPrefab, new Vector3(trafficLightPos.x, trafficLightPos.y, trafficLightPos.z), Quaternion.identity);
-                }
+                InitializeSimulation();
             }
-
-
             else
             {
-                foreach (TrafficLightData trafficLightPos in simulationData.trafficLightPos)
-                {
-                    if (!trafficLights.ContainsKey(trafficLightPos.id))
-                    {
-                        Debug.LogError("Traffic light not found: " + trafficLightPos.id);
-                        continue;
-                    }
-
-                    GameObject trafficLight = trafficLights[trafficLightPos.id];
-                    if (trafficLight != null)
-                    {
-                        // if direction is "Right" rotate 180° so that the
-                        // light faces +x, if direction is "Down" rotate 180°
-                        // so that the light faces -z
-                        // if (trafficLightPos.direction == "Right" && trafficLightPos.axis == "x" ||
-                        //     trafficLightPos.direction == "Down" && trafficLightPos.axis == "y")
-                        // {
-                        //     trafficLight.transform.Rotate(0, 180, 0);
-                        // }
-
-                        TrafficLightController trafficLightController = trafficLight.GetComponentInChildren<TrafficLightController>();
-                        if (trafficLightController != null)
-                        {
-                            trafficLightController.SetState(trafficLightPos.state);
-                        }
-                        else
-                        {
-                            Debug.LogError("TrafficLightController component not found on traffic light: " + trafficLightPos.id);
-                        }
-                    }
-                    else
-                    {
-                        Debug.LogError("Traffic light GameObject is null for ID: " + trafficLightPos.id);
-                    }
-                }
-
-                // First, ensure all cars in simulationData.carPos are created or found
-                foreach (PosData carPos in simulationData.carPos)
-                {
-                    GameObject car = GameObject.Find(carPos.id);
-                    if (car == null)
-                    {
-                        car = Instantiate(carPrefab, new Vector3(0, 0, 0), Quaternion.identity);
-                        car.name = carPos.id;
-                        cars.Add(carPos.id, car);
-                    }
-                }
-
-                // Next, check and remove any cars that are not in simulationData.carPos
-                List<string> carIdsToRemove = new List<string>();
-                foreach (KeyValuePair<string, GameObject> carEntry in cars)
-                {
-                    if (!simulationData.carPos.Any(posData => posData.id == carEntry.Key))
-                    {
-                        carIdsToRemove.Add(carEntry.Key);
-                    }
-                }
-
-                foreach (string carId in carIdsToRemove)
-                {
-                    GameObject car = cars[carId];
-                    CarMovement carMovement = car.GetComponent<CarMovement>();
-                    List<GameObject> wheels = carMovement.GetWheelObjects();
-                    foreach (GameObject wheel in wheels)
-                    {
-                        Destroy(wheel);
-                    }
-                    cars.Remove(carId);
-                    Destroy(car);
-                }
-
+                UpdateSimulationFromData();
             }
-            // Method to generate a random height within a desired range
-        float GetRandomHeight()
-        {
-            // Replace min and max with your desired range
-            float minHeight = 2.0f; // Minimum height
-            float maxHeight = 5.0f; // Maximum height
-            return UnityEngine.Random.Range(minHeight, maxHeight);
-        }
             updated = true;
+        }
+    }
+
+    private void UpdateSimulationFromData()
+    {
+        foreach (TrafficLightData trafficLightPos in simulationData.trafficLightPos)
+        {
+            if (!trafficLights.ContainsKey(trafficLightPos.id))
+            {
+                Debug.LogError("Traffic light not found: " + trafficLightPos.id);
+                continue;
+            }
+
+            GameObject trafficLight = trafficLights[trafficLightPos.id];
+            if (trafficLight != null)
+            {
+                // if direction is "Right" rotate 180° so that the
+                // light faces +x, if direction is "Down" rotate 180°
+                // so that the light faces -z
+                // if (trafficLightPos.direction == "Right" && trafficLightPos.axis == "x" ||
+                //     trafficLightPos.direction == "Down" && trafficLightPos.axis == "y")
+                // {
+                //     trafficLight.transform.Rotate(0, 180, 0);
+                // }
+
+                TrafficLightController trafficLightController = trafficLight.GetComponentInChildren<TrafficLightController>();
+                if (trafficLightController != null)
+                {
+                    trafficLightController.SetState(trafficLightPos.state);
+                }
+                else
+                {
+                    Debug.LogError("TrafficLightController component not found on traffic light: " + trafficLightPos.id);
+                }
+            }
+            else
+            {
+                Debug.LogError("Traffic light GameObject is null for ID: " + trafficLightPos.id);
+            }
+        }
+
+        // First, ensure all cars in simulationData.carPos are created or found
+        foreach (PosData carPos in simulationData.carPos)
+        {
+            GameObject car = GameObject.Find(carPos.id);
+            if (car == null)
+            {
+                car = Instantiate(carPrefab, new Vector3(0, 0, 0), Quaternion.identity);
+                car.name = carPos.id;
+                cars.Add(carPos.id, car);
+            }
+        }
+
+        // Next, check and remove any cars that are not in simulationData.carPos
+        List<string> carIdsToRemove = new List<string>();
+        foreach (KeyValuePair<string, GameObject> carEntry in cars)
+        {
+            if (!simulationData.carPos.Any(posData => posData.id == carEntry.Key))
+            {
+                carIdsToRemove.Add(carEntry.Key);
+            }
+        }
+
+        foreach (string carId in carIdsToRemove)
+        {
+            GameObject car = cars[carId];
+            CarMovement carMovement = car.GetComponent<CarMovement>();
+            List<GameObject> wheels = carMovement.GetWheelObjects();
+            foreach (GameObject wheel in wheels)
+            {
+                Destroy(wheel);
+            }
+            cars.Remove(carId);
+            Destroy(car);
+        }
+
+    }
+
+    private void InitializeSimulation()
+    {
+        foreach (PosData destinationPos in simulationData.destinationPos)
+        {
+            GameObject destination = Instantiate(destinationPrefab, new Vector3(destinationPos.x, destinationPos.y, destinationPos.z), Quaternion.identity); ;
+        }
+        foreach (PosData obstaclePos in simulationData.obstaclePos)
+        {
+            GameObject obstacle = Instantiate(obstaclePrefab, new Vector3(obstaclePos.x, obstaclePos.y, obstaclePos.z), Quaternion.identity);
+            AssignRandomTexture(obstacle); // Assign a random texture to the building
+                                           // Apply random height
+            float randomHeight = GetRandomHeight();
+            Vector3 currentScale = obstacle.transform.localScale;
+            obstacle.transform.localScale = new Vector3(currentScale.x, randomHeight, currentScale.z);
+        }
+        foreach (PosData roadPos in simulationData.roadPos)
+        {
+            GameObject road = Instantiate(roadPrefab, new Vector3(roadPos.x, roadPos.y, roadPos.z), Quaternion.identity); ;
+        }
+        foreach (TrafficLightData trafficLightPos in simulationData.trafficLightPos)
+        {
+            string axis = trafficLightPos.axis;
+
+            GameObject trafficLight = Instantiate(
+                trafficLightPrefab,
+                new Vector3(
+                    trafficLightPos.x,
+                    trafficLightPos.y,
+                    trafficLightPos.z
+                    ),
+                Quaternion.identity
+                );
+
+            trafficLight.name = trafficLightPos.id;
+
+            // // Check if the axis is "y" and rotate accordingly
+            if (axis == "y")
+            {
+                // Since they initially face -x, we rotate them 90 degrees around the y-axis to face +z
+                trafficLight.transform.Rotate(0, 90, 0);
+            }
+
+            trafficLights.Add(trafficLightPos.id, trafficLight);
+
+            // and a road
+            GameObject road = Instantiate(roadPrefab, new Vector3(trafficLightPos.x, trafficLightPos.y, trafficLightPos.z), Quaternion.identity);
         }
     }
 
