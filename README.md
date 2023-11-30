@@ -57,6 +57,10 @@
 This project is a traffic simulation for the course TC2008B at ITESM. The
 simulation is done in Unity and the backend runs in Python.
 
+Click here to watch a video of the simulation:
+
+[![Watch the video][googledrive-shield]](https://drive.google.com/file/d/16s5Wneie261dGBbIs-P-Gt45KHIMrjaU/view?usp=sharing)
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### Tech Stack
@@ -68,7 +72,7 @@ simulation is done in Unity and the backend runs in Python.
 
 #### Backend
 
-<!--  -->
+[![Python][python.com]][python-url]
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -92,6 +96,18 @@ Clone the repo
 ```sh
 git clone
 ```
+
+### Running the simulation
+
+The simulation can be run in two modes: 2D and 3D, to run it in 3D the Unity
+Editor should be booted and the scene `Assets/Scenes/BuildCity.unity` should be
+opened. Start the server by running the file `server.py` in the folder
+`Server` and then run the simulation in the Unity Editor.
+
+If you want to run the simulation in 2D (mesa portrayal mode) just run the file
+`server.py` with the flag `-m 2D`
+
+For more information about the server run the command `python server.py -h`
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -122,7 +138,7 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 
 ## Contact
 
-#### **Colaborators: Team "LEGENDS"**
+#### **Colaborators: Team 2: "Swifties"**
 
 - Fernanda Cortés Lozano - A01026613
 - Pablo Banzo Prida - A01782031
@@ -152,6 +168,7 @@ Project Link: [https://github.com/pridapablo/swiftCars](https://github.com/prida
 <!-- Stack Shields -->
 <!-- Web Shields -->
 
+[googledrive-shield]: https://img.shields.io/badge/Google%20Drive-4285F4?style=for-the-badge&logo=googledrive&logoColor=white
 [bootstrap.com]: https://img.shields.io/badge/Bootstrap-563D7C?style=for-the-badge&logo=bootstrap&logoColor=white
 [bootstrap-url]: https://getbootstrap.com
 [css3.com]: https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white
@@ -167,6 +184,8 @@ Project Link: [https://github.com/pridapablo/swiftCars](https://github.com/prida
 [unity-url]: https://unity.com/
 [c#.com]: https://img.shields.io/badge/C%23-239120?style=for-the-badge&logo=c-sharp&logoColor=white
 [c#-url]: https://docs.microsoft.com/en-us/dotnet/csharp/
+[python.com]: https://img.shields.io/badge/Python-14354C?style=for-the-badge&logo=python&logoColor=white
+[python-url]: https://www.python.org/
 
 <!-- Database Shields -->
 
