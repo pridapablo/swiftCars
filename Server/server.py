@@ -204,7 +204,7 @@ if __name__ == '__main__':
     # Stats posting configuration
     post_group = parser.add_argument_group('stats posting configuration')
     post_group.add_argument('-e', '--endpoint', type=str, 
-                            default="http://52.1.3.19:8585/api/validate_attempt",
+                            # default="http://52.1.3.19:8585/api/validate_attempt",
                             help='Endpoint URL for posting data. Default is http://52.1.3.19:8585/api/validate_attempt.')
     post_group.add_argument('-f', '--frequency', type=int, default=60,
                             help='Time interval (in seconds) between consecutive posts. Default is 60 seconds.')

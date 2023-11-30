@@ -58,11 +58,10 @@ class CityModel(Model):
             self.width = len(lines[0])-1
             self.height = len(lines)
 
+            self.cycle = 10 # Modulo of the step number to add a new car
             self.corners = [(0, 0), (self.width - 1, 0), (0, self.height - 1), (self.width - 1, self.height - 1)]
-            self.cycle = 10
 
             self.complete_trips = 0
-
             self.traffic_lights = []
             self.grid = MultiGrid(self.width, self.height, torus=False)
             self.schedule = RandomActivation(self)
