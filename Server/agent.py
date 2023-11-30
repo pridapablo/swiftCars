@@ -438,7 +438,7 @@ class Traffic_Light(Agent):
                     car_count += sum(isinstance(item, Car) for item in cell_contents)
 
         # Check for 4+ cars and change the light to green
-        if car_count >= 4:
+        if car_count >= 2:
             self.state = True
             self.green_duration = 4  # Set the green light duration
 

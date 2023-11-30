@@ -58,7 +58,7 @@ class CityModel(Model):
             self.width = len(lines[0])-1
             self.height = len(lines)
 
-            self.cycle = 3 # Modulo of the step number to add a new car
+            self.cycle = 10 # Modulo of the step number to add a new car
             self.corners = [(0, 0), (self.width - 1, 0), (0, self.height - 1), (self.width - 1, self.height - 1)]
 
             self.complete_trips = 0
@@ -132,8 +132,8 @@ class CityModel(Model):
                     "year": 2023,
                     "classroom": 301,
                     "name": "Equipo 2: Swifties",
-                    "num_cars": total_trips,
-                    # "num_trips": total_trips,
+                    "num_cars": car_count,
+                    "num_trips": total_trips,
                 }
                 print(f"Payload: {payload}")
                 response = requests.post("http://52.1.3.19:8585/api/attempts", json=payload)
