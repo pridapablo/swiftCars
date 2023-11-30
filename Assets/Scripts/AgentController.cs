@@ -262,7 +262,6 @@ public class AgentController : MonoBehaviour
                         TrafficLightController trafficLightController = trafficLight.GetComponentInChildren<TrafficLightController>();
                         if (trafficLightController != null)
                         {
-                            Debug.Log("Setting traffic light: " + trafficLightPos.id + " to state: " + trafficLightPos.state);
                             trafficLightController.SetState(trafficLightPos.state);
                         }
                         else
