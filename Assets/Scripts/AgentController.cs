@@ -135,6 +135,7 @@ public class AgentController : MonoBehaviour
         }
     }
 
+
     IEnumerator SendConfiguration()
     {
         /*
@@ -196,6 +197,10 @@ public class AgentController : MonoBehaviour
                 {
                     GameObject obstacle = Instantiate(obstaclePrefab, new Vector3(obstaclePos.x, obstaclePos.y, obstaclePos.z), Quaternion.identity);
                     AssignRandomTexture(obstacle); // Assign a random texture to the building
+                    // Apply random height
+                    float randomHeight = GetRandomHeight();
+                    Vector3 currentScale = obstacle.transform.localScale;
+                    obstacle.transform.localScale = new Vector3(currentScale.x, randomHeight, currentScale.z);
                 }
                 foreach (PosData roadPos in simulationData.roadPos)
                 {
@@ -307,6 +312,14 @@ public class AgentController : MonoBehaviour
                 }
 
             }
+            // Method to generate a random height within a desired range
+        float GetRandomHeight()
+        {
+            // Replace min and max with your desired range
+            float minHeight = 2.0f; // Minimum height
+            float maxHeight = 5.0f; // Maximum height
+            return UnityEngine.Random.Range(minHeight, maxHeight);
+        }
             updated = true;
         }
     }
