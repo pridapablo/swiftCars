@@ -109,6 +109,7 @@ def updateModel():
     if request.method == 'GET':
         cityModel.step()
         currentStep += 1
+        print(f"Step {currentStep}")
         return jsonify({'message':f'Model updated to step {currentStep}.', 'currentStep':currentStep})
 
 @app.route('/setCycle', methods=['POST'])

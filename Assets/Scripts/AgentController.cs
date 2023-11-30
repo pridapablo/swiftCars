@@ -67,7 +67,8 @@ public class AgentController : MonoBehaviour
     private float timer, dt;
 
     public Texture[] buildingTextures; // Assign this array in the inspector with your textures
-
+    private int simulationUpdateCounter = 0; // Counter for simulation updates
+    private bool trafficLightsOriented = false; // Ensures traffic lights are only oriented once
     Dictionary<string, GameObject> cars = new Dictionary<string, GameObject>();
     Dictionary<string, GameObject> trafficLights = new Dictionary<string, GameObject>();
 
@@ -206,6 +207,29 @@ public class AgentController : MonoBehaviour
 
     private void UpdateSimulationFromData()
     {
+        // This block will run only once after the second update
+        if (simulationUpdateCounter == 1 && !trafficLightsOriented)
+        {
+            foreach (TrafficLightData trafficLightPos in simulationData.trafficLightPos)
+            {
+                if (trafficLights.ContainsKey(trafficLightPos.id))
+                {
+                    GameObject trafficLight = trafficLights[trafficLightPos.id];
+                    if (trafficLight != null)
+                    {
+                        // Rotate the traffic light if necessary
+                        if (trafficLightPos.direction == "Left" && trafficLightPos.axis == "x" ||
+                            trafficLightPos.direction == "Up" && trafficLightPos.axis == "y")
+                        {
+                            trafficLight.transform.Rotate(0, 180, 0);
+                        }
+                    }
+                }
+            }
+            trafficLightsOriented = true; // Set this flag to true to prevent re-execution
+        }
+
+        // Regular update
         foreach (TrafficLightData trafficLightPos in simulationData.trafficLightPos)
         {
             if (!trafficLights.ContainsKey(trafficLightPos.id))
@@ -217,15 +241,6 @@ public class AgentController : MonoBehaviour
             GameObject trafficLight = trafficLights[trafficLightPos.id];
             if (trafficLight != null)
             {
-                // if direction is "Right" rotate 180° so that the
-                // light faces +x, if direction is "Down" rotate 180°
-                // so that the light faces -z
-                // if (trafficLightPos.direction == "Right" && trafficLightPos.axis == "x" ||
-                //     trafficLightPos.direction == "Down" && trafficLightPos.axis == "y")
-                // {
-                //     trafficLight.transform.Rotate(0, 180, 0);
-                // }
-
                 TrafficLightController trafficLightController = trafficLight.GetComponentInChildren<TrafficLightController>();
                 if (trafficLightController != null)
                 {
@@ -276,7 +291,7 @@ public class AgentController : MonoBehaviour
             cars.Remove(carId);
             Destroy(car);
         }
-
+        simulationUpdateCounter++;
     }
 
     private void InitializeSimulation()
