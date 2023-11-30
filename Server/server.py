@@ -3,8 +3,6 @@ from model import CityModel
 from agent import Car, Traffic_Light, Obstacle, Road, Destination
 import argparse
 import threading
-import time
-import requests
 from mesa.visualization import CanvasGrid, ModularServer
 
 # Model configuration
@@ -12,30 +10,10 @@ width = 0
 height = 0
 cityModel = None
 currentStep = 0
+periodicity = None
+endpoint = None
 
 app = Flask("Traffic")
-
-def background_task(post_endpoint, periodicity):
-    print(f"Starting background task to post to {post_endpoint} every {periodicity} seconds.")
-    global cityModel
-    while True:
-        try:
-            if cityModel:
-                car_count = cityModel.get_car_count()
-                total_trips = cityModel.get_complete_trips()
-                payload = {
-                    "year": 2023,
-                    "classroom": 301,
-                    "name": "Equipo 2: Swifties",
-                    "num_cars": car_count,
-                    "num_trips": total_trips,
-                }
-                print(f"Payload: {payload}")
-                response = requests.post(post_endpoint, json=payload)
-                print(f"Posted to {post_endpoint}: {response.status_code} {response.reason}")
-        except Exception as e:
-            print(f"Error during POST: {e}")
-        time.sleep(periodicity)
 
 @app.route('/init', methods=['POST']) #
 def initModel():
@@ -43,8 +21,8 @@ def initModel():
     if request.method == 'POST':
         currentStep = 0
 
-        cityModel = CityModel()
-        return jsonify({"message":"Parameters recieved, model initiated."})
+        cityModel = CityModel(periodicity=periodicity, endpoint=endpoint)
+        return jsonify({"message": "Parameters received, model initiated."})
     else:
         return jsonify({
             "message": "Method not allowed."
@@ -175,7 +153,6 @@ with open('city_files/2023_base.txt') as baseFile:
     height = len(lines)
 
 grid = CanvasGrid(agent_portrayal, width, height, 500, 500)
-mesa_server = ModularServer(CityModel, [grid], "Traffic Base")
 
 # Argument validation functions
 def validate_port(port):
@@ -217,20 +194,16 @@ if __name__ == '__main__':
     # Parse the arguments
     args = parser.parse_args()
 
-    # Start the background task for posting data, only in 3d mode
-    if args.mode == '3d' and args.endpoint:
-        thread = threading.Thread(
-            target=background_task, 
-            args=(args.endpoint, args.frequency), 
-            daemon=True
-        )
-        thread.start()
-
     # Launch the appropriate server based on the mode
     if args.mode == '2d':
+        mesa_server = ModularServer(CityModel, [grid], "Traffic Base", {"endpoint": args.endpoint, "periodicity": args.frequency})
         mesa_server.port = args.port
         mesa_server.launch()
     else:
+        # Validate the post periodicity
+        periodicity = args.frequency
+        endpoint = args.endpoint
+
         app.run(
             host='localhost',
             port=args.port,

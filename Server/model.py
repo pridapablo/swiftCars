@@ -45,7 +45,7 @@ class CityModel(Model):
     """ 
         Creates a model based on a city map.
     """
-    def __init__(self):
+    def __init__(self, endpoint, periodicity):
 
         # Load the map dictionary. The dictionary maps the characters in the map file to the corresponding agent.
         path = os.path.abspath('./city_files/mapDictionary.json')
@@ -57,6 +57,8 @@ class CityModel(Model):
             lines = baseFile.readlines()
             self.width = len(lines[0])-1
             self.height = len(lines)
+            self.endpoint = endpoint
+            self.periodicity = periodicity
 
             self.cycle = 10 # Modulo of the step number to add a new car
             self.corners = [(0, 0), (self.width - 1, 0), (0, self.height - 1), (self.width - 1, self.height - 1)]
@@ -123,7 +125,8 @@ class CityModel(Model):
     def step(self):
         '''Advance the model by one step.'''
         print (f"Scheduled steps: {self.schedule.steps}")
-        if self.schedule.steps % 100 == 0:
+        # Post to the endpoint every 100 steps
+        if self.schedule.steps % self.periodicity == 0 and self.endpoint:
             print(f"POSTING: Total cars at step {self.schedule.steps}: {self.get_car_count()}")
             try:
                 car_count = self.get_car_count()
@@ -136,7 +139,7 @@ class CityModel(Model):
                     "num_trips": total_trips,
                 }
                 print(f"Payload: {payload}")
-                response = requests.post("http://52.1.3.19:8585/api/attempts", json=payload)
+                response = requests.post(self.endpoint, json=payload)
                 print(f"Posted to ep: {response.status_code} {response.reason}")
             except Exception as e:
                 print(f"Error during POST: {e}")
