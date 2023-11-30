@@ -181,15 +181,14 @@ if __name__ == '__main__':
     post_group = parser.add_argument_group('stats posting configuration')
     post_group.add_argument('-e', '--endpoint', type=str, 
                             # default="http://52.1.3.19:8585/api/attempt",
-                            help='Endpoint URL for posting data.')
+                            help='Endpoint URL for posting stats. Note: The server will not ping if no endpoint is provided even if the periodicity is set.')
     post_group.add_argument('-f', '--frequency', type=int, default=60,
-                            help='Time interval (in seconds) between consecutive posts. Default is 60 seconds.')
+                            help='Time interval (in steps) between consecutive posts. Default is 60.')
 
     # Mode configuration
     mode_group = parser.add_argument_group('mode configuration')
     mode_group.add_argument('-m', '--mode', choices=['2d', '3d'], default='3d',
-                            help='Visualization mode: 2d mesa portrayal or 3d (for use with Unity). Default is 3d. '
-                                'Note: The server will not ping the post-endpoint in 2d mode.')
+                            help='Visualization mode: 2d mesa portrayal or 3d (for use with Unity). Default is 3d.')
 
     # Parse the arguments
     args = parser.parse_args()
