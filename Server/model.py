@@ -123,8 +123,9 @@ class CityModel(Model):
         return self.random.choice(destinations) if destinations else None
     
     def step(self):
-        '''Advance the model by one step.'''
-        print (f"Scheduled steps: {self.schedule.steps}")
+        '''
+            Advance the model by one step.
+        '''
         # Post to the endpoint every 100 steps
         if self.schedule.steps % self.periodicity == 0 and self.endpoint:
             print(f"POSTING: Total cars at step {self.schedule.steps}: {self.get_car_count()}")
