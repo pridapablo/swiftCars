@@ -4,6 +4,7 @@ from mesa.space import MultiGrid
 from agent import *
 import os
 import json
+import requests
 
 def print_grid(multigrid: MultiGrid):
             # Mapping of direction to arrow symbols
@@ -57,7 +58,7 @@ class CityModel(Model):
             self.width = len(lines[0])-1
             self.height = len(lines)
 
-            self.cycle = 2 # Modulo of the step number to add a new car
+            self.cycle = 3 # Modulo of the step number to add a new car
             self.corners = [(0, 0), (self.width - 1, 0), (0, self.height - 1), (self.width - 1, self.height - 1)]
 
             self.complete_trips = 0
@@ -121,6 +122,25 @@ class CityModel(Model):
     
     def step(self):
         '''Advance the model by one step.'''
+        print (f"Scheduled steps: {self.schedule.steps}")
+        if self.schedule.steps % 100 == 0:
+            print(f"POSTING: Total cars at step {self.schedule.steps}: {self.get_car_count()}")
+            try:
+                car_count = self.get_car_count()
+                total_trips = self.get_complete_trips()
+                payload = {
+                    "year": 2023,
+                    "classroom": 301,
+                    "name": "Equipo 2: Swifties",
+                    "num_cars": total_trips,
+                    # "num_trips": total_trips,
+                }
+                print(f"Payload: {payload}")
+                response = requests.post("http://52.1.3.19:8585/api/attempts", json=payload)
+                print(f"Posted to ep: {response.status_code} {response.reason}")
+            except Exception as e:
+                print(f"Error during POST: {e}")
+
         # Print the grid at step 2
         if self.schedule.steps == 2:
             print_grid(self.grid)
@@ -146,10 +166,11 @@ class CityModel(Model):
                     print(f"Corner {corner} is already filled")
 
             # Halt if all corners are filled
-            # if all_corners_filled:
-            #     print("All corners are filled. Halting the model.")
-            #     self.running = False
-
+            if all_corners_filled:
+                print("All corners are filled. Halting the model.")
+                self.running = False
+            
+        
         print(f"Total cars at destination: {self.get_complete_trips()}")
         # Proceed with the rest of the step
         self.schedule.step()

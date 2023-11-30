@@ -24,7 +24,7 @@ def heuristic(a, b):
     return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
 
 def a_star_search(grid_matrix: MultiGrid, start, goal, is_path_clear, block_cells=None):
-    print(f"Starting A* search from {start} to {goal}")
+    # print(f"Starting A* search from {start} to {goal}")
 
     frontier = PriorityQueue()
     frontier.put(start, 0)
@@ -40,16 +40,15 @@ def a_star_search(grid_matrix: MultiGrid, start, goal, is_path_clear, block_cell
         for next in get_neighbors(grid_matrix, current):
             if not is_path_clear(grid_matrix, current, next):
                 continue
-            
-            if block_cells and next in block_cells:
-                print(f"Nah, I'm not going there: {next}")
-                continue
 
             new_cost = cost_so_far[current] + 1
             dx = abs(next[0] - current[0])
             dy = abs(next[1] - current[1])
             if dx == 1 and dy == 1:
                 new_cost += math.sqrt(2) - 1
+
+            if block_cells and next in block_cells:
+                new_cost += 1000
 
             if next not in cost_so_far or new_cost < cost_so_far[next]:
                 cost_so_far[next] = new_cost
@@ -68,7 +67,8 @@ def a_star_search(grid_matrix: MultiGrid, start, goal, is_path_clear, block_cell
     elif path[-1] != goal:
         print(f"!!!!!!! Path does not reach the goal: {path[-1]} != {goal}")
     else:
-        print(f"Path last cell: {path[-1]}")
+        pass
+        # print(f"Path last cell: {path[-1]}")
     
     return path
 
@@ -191,7 +191,7 @@ class Car(Agent):
 
         # Check if the agent is stuck
         if len(self.position_history) == max_history_length and len(set(self.position_history)) == 1:
-            print(f"Agent {self.unique_id} is stuck!")
+            # print(f"Agent {self.unique_id} is stuck!")
             self.is_stuck = True
         else:
             self.is_stuck = False
@@ -260,7 +260,6 @@ class Car(Agent):
         
             # 3. Stuck: recalculate path before moving
             if self.is_stuck:
-                print(f"STUCK: Agent {self.unique_id} is stuck, recalculating path.")
                 self.path = []
                 # coordinates of the blocking neighbor is next_cell
                 self.find_path(block_cells = [next_cell])
@@ -277,7 +276,7 @@ class Car(Agent):
                     correct_direction = self.validate_road_direction(road, next_road, self.pos, next_cell)
 
                     if not correct_direction:
-                        print(f"Path is invalid, forcing recalculation.")
+                        # print(f"Path is invalid, forcing recalculation.")
                         self.path = []
                         self.find_path(block_cells=[next_cell]) # Exclude the invalid cell from the path
                         return
@@ -301,7 +300,7 @@ class Car(Agent):
                 correct_direction = self.validate_road_direction(road, next_road, self.pos, next_cell)
 
                 if not correct_direction:
-                    print(f"Path is invalid, forcing recalculation.")
+                    # print(f"Path is invalid, forcing recalculation.")
                     self.path = []
                     self.find_path(block_cells=[next_cell]) # Exclude the invalid cell from the path
                     return
@@ -310,7 +309,7 @@ class Car(Agent):
             self.model.grid.move_agent(self, next_cell)
             self.path.pop(0) # Remove the first element from the path since the agent has moved to that cell
         else:
-            print(f"Recalculating path for agent {self.unique_id} no next cell found.")
+            # print(f"Recalculating path for agent {self.unique_id} no next cell found.")
             self.path = []
             self.find_path()
         
