@@ -265,11 +265,12 @@ class Car(Agent):
 
             # 4. Change lane if too many cars in the same lane?
 
+
             # 3. Traffic
             if any(isinstance(obj, Car) for obj in next_cell_contents):
                 return # Won't move if there is a car in the next cell
             
-            # 4. Road direction validation since the agent is moving
+            # 5. Road direction validation since the agent is moving
             road = next((obj for obj in next_cell_contents if isinstance(obj, Road)), None) # this is an object
 
             if road:
