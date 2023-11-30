@@ -57,7 +57,7 @@ class CityModel(Model):
             self.width = len(lines[0])-1
             self.height = len(lines)
 
-            self.cycle = 1000000000 # Modulo of the step number to add a new car
+            self.cycle = 3 # Modulo of the step number to add a new car
             self.corners = [(0, 0), (self.width - 1, 0), (0, self.height - 1), (self.width - 1, self.height - 1)]
 
             self.complete_trips = 0
@@ -73,7 +73,7 @@ class CityModel(Model):
                         self.grid.place_agent(agent, (c, self.height - r - 1))
 
                     elif col in ["S", "s"]:
-                        agent = Traffic_Light(f"tl_{r*self.width+c}", self, False if col == "S" else True, int(dataDictionary[col]))
+                        agent = Traffic_Light(f"tl_{r*self.width+c}", self, False if col == "S" else True)
                         self.grid.place_agent(agent, (c, self.height - r - 1))
                         self.schedule.add(agent)
                         self.traffic_lights.append(agent)
