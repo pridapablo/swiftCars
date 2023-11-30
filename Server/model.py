@@ -146,9 +146,10 @@ class CityModel(Model):
                     print(f"Corner {corner} is already filled")
 
             # Halt if all corners are filled
-            if all_corners_filled:
-                print("All corners are filled. Halting the model.")
-                self.running = False
+            # if all_corners_filled:
+            #     print("All corners are filled. Halting the model.")
+            #     self.running = False
 
+        print(f"Total cars at destination: {self.get_complete_trips()}")
         # Proceed with the rest of the step
         self.schedule.step()
