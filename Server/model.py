@@ -57,7 +57,7 @@ class CityModel(Model):
             self.width = len(lines[0])-1
             self.height = len(lines)
 
-            self.cycle = 3 # Modulo of the step number to add a new car
+            self.cycle = 2 # Modulo of the step number to add a new car
             self.corners = [(0, 0), (self.width - 1, 0), (0, self.height - 1), (self.width - 1, self.height - 1)]
 
             self.complete_trips = 0

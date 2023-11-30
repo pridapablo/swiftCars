@@ -40,8 +40,9 @@ def a_star_search(grid_matrix: MultiGrid, start, goal, is_path_clear, block_cell
         for next in get_neighbors(grid_matrix, current):
             if not is_path_clear(grid_matrix, current, next):
                 continue
-
+            
             if block_cells and next in block_cells:
+                print(f"Nah, I'm not going there: {next}")
                 continue
 
             new_cost = cost_so_far[current] + 1
@@ -165,7 +166,6 @@ class Car(Agent):
             # Path is clear if none of the above conditions are met
             return True
         
-  
         # Find the path using A* algorithm (block_cell is an optional parameter
         # and will be passed as none if not provided)
         self.path = a_star_search(self.model.grid, start, end, is_path_clear, block_cells)
@@ -181,9 +181,9 @@ class Car(Agent):
         # Add the current position to the history
         self.position_history.append(self.pos)
 
-        # At minimum greediness (close to 0), the history length will be approximately 4. ​​
-        # At maximum greediness (close to 1), the history length will be 1.
-        max_history_length = 4 - 3 * self.greediness
+        # At minimum greediness (close to 0), the history length will be approximately 7. ​​
+        # At maximum greediness (close to 1), the history length will be 4.
+        max_history_length = round(7 - 4 * self.greediness)
 
         # Keep only the last x positions
         if len(self.position_history) > max_history_length:
@@ -191,6 +191,7 @@ class Car(Agent):
 
         # Check if the agent is stuck
         if len(self.position_history) == max_history_length and len(set(self.position_history)) == 1:
+            print(f"Agent {self.unique_id} is stuck!")
             self.is_stuck = True
         else:
             self.is_stuck = False
@@ -259,12 +260,32 @@ class Car(Agent):
         
             # 3. Stuck: recalculate path before moving
             if self.is_stuck:
+                print(f"STUCK: Agent {self.unique_id} is stuck, recalculating path.")
                 self.path = []
                 # coordinates of the blocking neighbor is next_cell
                 self.find_path(block_cells = [next_cell])
+                if len(self.path) == 0:
+                    print(f"Agent {self.unique_id} could not find a path to {self.destination.get_position()}, keeping current path.")
+                    return
+                next_cell = self.path[0]
+                road = next((obj for obj in next_cell_contents if isinstance(obj, Road)), None) # this is an object
 
-            # 4. Change lane if too many cars in the same lane?
+                if road:
+                    next_road = next((obj for obj in self.model.grid.get_cell_list_contents([next_cell]) if isinstance(obj, Road)), None)
 
+                    # Validate the direction of the road
+                    correct_direction = self.validate_road_direction(road, next_road, self.pos, next_cell)
+
+                    if not correct_direction:
+                        print(f"Path is invalid, forcing recalculation.")
+                        self.path = []
+                        self.find_path(block_cells=[next_cell]) # Exclude the invalid cell from the path
+                        return
+
+                # All checks have passed, move to the next cell if exists
+                self.model.grid.move_agent(self, next_cell)
+                self.path.pop(0) # Remove the first element from the path since the agent has moved to that cell
+                return
 
             # 3. Traffic
             if any(isinstance(obj, Car) for obj in next_cell_contents):
