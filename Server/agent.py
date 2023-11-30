@@ -309,7 +309,7 @@ class Traffic_Light(Agent):
     """
     Traffic light. Where the traffic lights are in the grid.
     """
-    def __init__(self, unique_id, model, state = False, timeToChange = 10):
+    def __init__(self, unique_id, model, state = False):
         super().__init__(unique_id, model)
         """
         Creates a new Traffic light.
@@ -322,7 +322,7 @@ class Traffic_Light(Agent):
         self.state = state
         self.axis = "x" if state else "y"
         self.direction = None 
-        self.timeToChange = timeToChange
+        self.green_duration = 0
 
     def set_direction(self, same_cell_road, adjacent_roads):
         if same_cell_road and adjacent_roads:
@@ -376,6 +376,17 @@ class Traffic_Light(Agent):
         else:
             print(f"Traffic Light @ {self.pos}: No axis roads found")
 
+    def is_direction_compatible(self, road_direction):
+        # Check if road direction is compatible with traffic light direction
+        if self.direction in ['Left', 'Right']:
+            return road_direction in ['Left', 'Right', 'Horizontal']
+        elif self.direction in ['Up', 'Down']:
+            return road_direction in ['Up', 'Down', 'Vertical']
+        elif self.direction == 'Horizontal':
+            return road_direction in ['Left', 'Right']
+        elif self.direction == 'Vertical':
+            return road_direction in ['Up', 'Down']
+        return True  # 'Any' or other cases
     def step(self):
         """ 
         To change the state (green or red) of the traffic light in case you consider the time to change of each traffic light.
@@ -398,10 +409,29 @@ class Traffic_Light(Agent):
             # Check and update direction if all adjacent roads have the same direction
             # and there is a road on the same cell
             self.set_direction(this_cell_road, adjacent_roads)  
+        
+        ## Smart traffic light
+        car_count = 0
+        # Get the neighboring positions with a radius of 5
+        for pos in self.model.grid.get_neighborhood(self.pos, moore=False, include_center=False, radius=5):
+            cell_contents = self.model.grid.get_cell_list_contents(pos)
 
-        # Change the state of the traffic light
-        if self.model.schedule.steps % self.timeToChange == 0:
-            self.state = not self.state
+            # Check for roads and their directions
+            for obj in cell_contents:
+                if isinstance(obj, Road) and self.is_direction_compatible(obj.direction):
+                    # Count cars on this road
+                    car_count += sum(isinstance(item, Car) for item in cell_contents)
+
+        # Check for 4+ cars and change the light to green
+        if car_count >= 4:
+            self.state = True
+            self.green_duration = 5  # Set the green light duration
+
+        # Decrement green light duration and change back to red if duration is over
+        if self.state and self.green_duration > 0:
+            self.green_duration -= 1
+            if self.green_duration == 0:
+                self.state = False
 class Destination(Agent):
     """
     Destination agent. Where each car should go.
