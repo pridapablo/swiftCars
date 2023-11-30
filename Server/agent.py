@@ -263,6 +263,8 @@ class Car(Agent):
                 # coordinates of the blocking neighbor is next_cell
                 self.find_path(block_cells = [next_cell])
 
+            # 4. Change lane if too many cars in the same lane?
+
             # 3. Traffic
             if any(isinstance(obj, Car) for obj in next_cell_contents):
                 return # Won't move if there is a car in the next cell
