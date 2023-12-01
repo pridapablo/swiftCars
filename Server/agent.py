@@ -3,6 +3,9 @@ from mesa.space import MultiGrid
 import math
 
 class PriorityQueue:
+    """
+        Simple priority queue implementation.
+    """
     def __init__(self):
         self.elements = []
 
@@ -16,16 +19,20 @@ class PriorityQueue:
     def get(self):
         return self.elements.pop(0)[1]  # Pop the element with the lowest priority
 
-    
-# A* search algorithm
 def heuristic(a, b):
+    """
+        Calculates the Euclidean distance between two points on a grid.
+    """
     (x1, y1) = a
     (x2, y2) = b
     return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
 
 def a_star_search(grid_matrix: MultiGrid, start, goal, is_path_clear, block_cells=None):
-    # print(f"Starting A* search from {start} to {goal}")
-
+    """
+        Modified A* search algorithm that finds the shortest path between two points on
+        a grid. It takes into account the direction of the road when calculating
+        the path and any blocking cells that should be avoided.
+    """
     frontier = PriorityQueue()
     frontier.put(start, 0)
     came_from = {start: None}
@@ -66,13 +73,13 @@ def a_star_search(grid_matrix: MultiGrid, start, goal, is_path_clear, block_cell
         print("No path found!")
     elif path[-1] != goal:
         print(f"!!!!!!! Path does not reach the goal: {path[-1]} != {goal}")
-    else:
-        pass
-        # print(f"Path last cell: {path[-1]}")
     
     return path
 
 def get_neighbors(grid: MultiGrid, pos):
+    """
+        Returns the neighbors of a cell based on the direction of the road.
+    """
     x, y = pos
     neighbors = []
 
@@ -113,20 +120,18 @@ def get_neighbors(grid: MultiGrid, pos):
 
 class Car(Agent):
     """
-    Agent that moves towards its destination using A*.
+    A car agent in the traffic simulation that aims to reach a randomly assigned destination 
+    while avoiding traffic congestion. It moves on a predefined grid, reacting to traffic lights 
+    and other cars, and recalculates its path using A* algorithm when necessary.
+
+    Attributes:
+        unique_id: A unique identifier for the agent.
+        model: The model instance of the simulation the agent is part of.
+        destination: The destination the agent is trying to reach.
+        path: A list of tuples representing the path to the destination.
+        greediness: A measure of how proactive the agent is in route recalculations (0-1).
     """
     def __init__(self, unique_id, model, destination):
-        """
-        Creates a new random agent.
-        Args:
-            unique_id: The agent's ID
-            model: Model reference for the agent
-            destination: Where the agent should go (destination agent)
-            path: The path the agent will follow to get to the destination
-            (could be empty)
-            greediness: How greedy the agent is (how proactive it is when
-            interacting with other agents) (0-1)
-        """
         super().__init__(unique_id, model)
         self.destination = destination
         self.path = []
@@ -138,7 +143,6 @@ class Car(Agent):
         """ 
         Finds the path to the destination using A* checking road directions.
         """
-
         start = self.pos # Current position
         end = self.destination.get_position()
 
@@ -178,6 +182,10 @@ class Car(Agent):
         return self.path
     
     def update_position_history(self):
+        """
+            Updates the position history of the agent and checks if it is stuck
+            based on the greediness of the agent.
+        """
         # Add the current position to the history
         self.position_history.append(self.pos)
 
@@ -191,13 +199,15 @@ class Car(Agent):
 
         # Check if the agent is stuck
         if len(self.position_history) == max_history_length and len(set(self.position_history)) == 1:
-            # print(f"Agent {self.unique_id} is stuck!")
             self.is_stuck = True
         else:
             self.is_stuck = False
     
     @staticmethod
     def validate_road_direction(current_road, next_road, current_pos, next_pos):
+        """
+            Validates the direction of the road based on the current and next positions.
+        """
         # Check if there is no movement
         if current_pos == next_pos:
             print(f"No movement from {current_pos} to {next_pos}, forcing path recalculation.")
@@ -227,7 +237,19 @@ class Car(Agent):
 
         return True
 
-    def move(self):
+
+    def step(self):
+        """ 
+            Triggered at each step of the simulation. Moves the agent to the
+            next cell in the path and follows the subsumption architecture.
+
+            Subsumption architecture:
+            1. Destination
+            2. Traffic lights
+            3. Stuck: recalculate path before moving
+            4. Traffic
+            5. Road direction validation since the agent is moving
+        """
         self.update_position_history()
         # 1. Destination
         current_cell_contents = self.model.grid.get_cell_list_contents([self.pos])
@@ -276,7 +298,6 @@ class Car(Agent):
                     correct_direction = self.validate_road_direction(road, next_road, self.pos, next_cell)
 
                     if not correct_direction:
-                        # print(f"Path is invalid, forcing recalculation.")
                         self.path = []
                         self.find_path(block_cells=[next_cell]) # Exclude the invalid cell from the path
                         return
@@ -300,7 +321,6 @@ class Car(Agent):
                 correct_direction = self.validate_road_direction(road, next_road, self.pos, next_cell)
 
                 if not correct_direction:
-                    # print(f"Path is invalid, forcing recalculation.")
                     self.path = []
                     self.find_path(block_cells=[next_cell]) # Exclude the invalid cell from the path
                     return
@@ -309,52 +329,50 @@ class Car(Agent):
             self.model.grid.move_agent(self, next_cell)
             self.path.pop(0) # Remove the first element from the path since the agent has moved to that cell
         else:
-            # print(f"Recalculating path for agent {self.unique_id} no next cell found.")
             self.path = []
             self.find_path()
-        
-
-    def step(self):
-        """ 
-        Determines the new direction it will take, and then moves
-        """
-        self.move()
 
 class Traffic_Light(Agent):
     """
-    Traffic light. Where the traffic lights are in the grid.
+    A traffic light agent that alternates between green and red states, influencing the traffic flow.
+    It is smart enough to turn green when a certain number of cars are waiting and can orient 
+    itself and the road beneath it based on the direction of the adjacent roads.
+
+    Attributes:
+        unique_id: A unique identifier for the agent.
+        model: The model instance of the simulation the agent is part of.
+        state: A boolean indicating the state of the traffic light, where True is green and False is red.
+        axis: The axis along which the traffic light operates, determined by its initial state ('x' or 'y').
+        direction: The direction the traffic light faces based on the adjacent roads.
+        green_duration: The number of steps the traffic light remains green.
     """
     def __init__(self, unique_id, model, state = False):
         super().__init__(unique_id, model)
-        """
-        Creates a new Traffic light.
-        Args:
-            unique_id: The agent's ID
-            model: Model reference for the agent
-            state: Whether the traffic light is green or red
-            timeToChange: After how many step should the traffic light change color 
-        """
         self.state = state
         self.axis = "x" if state else "y"
         self.direction = None 
         self.green_duration = 4 if state else 0
 
     def set_direction(self, same_cell_road, adjacent_roads):
+        """
+            Sets the direction of the road and light based on the adjacent roads.
+        """
         if same_cell_road and adjacent_roads:
             # Check if all adjacent roads have the same direction
             if all(road.direction == adjacent_roads[0].direction for road in adjacent_roads):
                 self.direction = adjacent_roads[0].direction
                 same_cell_road.direction = adjacent_roads[0].direction
-                # print(f"Traffic Light @ {self.pos}: Direction set to {same_cell_road.direction} (based on adjacent roads)")
             else:
                 # Handle the case where adjacent roads have different directions
                 self.determine_direction_based_on_axis(same_cell_road)
         
 
     def determine_direction_based_on_axis(self, same_cell_road):
-        # Print the initial axis and position
-
-        # Use get_neighborhood to get the coordinates of the Von Neumann neighbors
+        """
+            Helper function to determine the direction of the traffic light
+            based on the axis.
+        """
+        # get_neighborhood to get the coordinates of the Von Neumann neighbors
         neighboring_positions = self.model.grid.get_neighborhood(self.pos, moore=False, include_center=False)
 
         axis_roads = []
@@ -386,12 +404,14 @@ class Traffic_Light(Agent):
                     # Use the direction of the first horizontal road found
                     self.direction = horizontal_roads[0].direction
                     same_cell_road.direction = horizontal_roads[0].direction
-
-            # print(f"Traffic Light @ {self.pos}: Direction set to {same_cell_road.direction} (based on axis)")
         else:
             print(f"Traffic Light @ {self.pos}: No axis roads found")
 
     def is_direction_compatible(self, road_direction):
+        """
+            Checks if the direction of the road is compatible with the
+            direction of the traffic light (defines its perception).
+        """
         # Check if road direction is compatible with traffic light direction
         if self.direction in ['Left', 'Right']:
             return road_direction in ['Left', 'Right', 'Horizontal']
@@ -401,10 +421,11 @@ class Traffic_Light(Agent):
             return road_direction in ['Left', 'Right']
         elif self.direction == 'Vertical':
             return road_direction in ['Up', 'Down']
-        return True  # 'Any' or other cases
+        return True  # 'Any' direction
     def step(self):
         """ 
-        To change the state (green or red) of the traffic light in case you consider the time to change of each traffic light.
+            Changes the state of the traffic light based on the number of cars
+            waiting and follows the subsumption architecture.
         """
         if not self.direction:
             # Getting adjacent roads but excluding the road on the same cell as the traffic light
@@ -437,7 +458,7 @@ class Traffic_Light(Agent):
                     # Count cars on this road
                     car_count += sum(isinstance(item, Car) for item in cell_contents)
 
-        # Check for 4+ cars and change the light to green
+        # Check for 2+ cars and change the light to green
         if car_count >= 2:
             self.state = True
             self.green_duration = 4  # Set the green light duration
@@ -449,7 +470,12 @@ class Traffic_Light(Agent):
                 self.state = False
 class Destination(Agent):
     """
-    Destination agent. Where each car should go.
+    A destination agent representing the target location for car agents. When a car agent reaches its 
+    destination, it is removed from the simulation, and the trip is recorded as complete.
+
+    Attributes:
+        unique_id: A unique identifier for the agent.
+        model: The model instance of the simulation the agent is part of.
     """
     def __init__(self, unique_id, model):
         super().__init__(unique_id, model)
@@ -458,6 +484,10 @@ class Destination(Agent):
         return self.pos
 
     def step(self):
+        """
+            Triggered at each step of the simulation. Checks if there is a car in
+            the destination. If so, removes the car from the simulation and records.
+        """
         # If there is a car in the destination, remove it
         cell = self.model.grid.get_cell_list_contents([self.pos])
         for agent in cell:
@@ -476,16 +506,9 @@ class Obstacle(Agent):
         pass
 class Road(Agent):
     """
-    Road agent. Determines where the cars can move, and in which direction.
+    Road agent. Determines which direction the cars can move in.
     """
     def __init__(self, unique_id, model, direction= "Left"):
-        """
-        Creates a new road.
-        Args:
-            unique_id: The agent's ID
-            model: Model reference for the agent
-            direction: Direction where the cars can move
-        """
         super().__init__(unique_id, model)
         self.direction = direction
 
