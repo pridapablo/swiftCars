@@ -1,9 +1,18 @@
+/* 
+    Building texture randomizer script.
+
+    Authors:
+            Pablo Banzo Prida
+            María Fernanda Cortés Lozano
+
+        Date: 30/11/2023
+*/
+
 using UnityEngine;
 
 public class RandomBuildingTexture : MonoBehaviour
 {
-    public Texture[] textures; // Assign this array in the inspector with your textures
-
+    public Texture[] textures; // Texture array for the building textures
     void Start()
     {
         if (textures.Length > 0)

@@ -1,7 +1,19 @@
-﻿// TC2008B. Sistemas Multiagentes y Gráficas Computacionales
-// C# client to interact with Python. Based on the code provided by Sergio Ruiz.
-// Octavio Navarro. October 2023
+﻿/*
+    C# client to interact with Flask server. 
+    It is used to send the configuration to the server and to get the agents
+    data at each step of the simulation.
 
+    It also generates the city based on the configuration received from the
+    server and updates the agents positions.
+    
+    Based on the code provided by Sergio Ruiz and Octavio Navarro.
+
+    Authors:
+        Pablo Banzo Prida
+        María Fernanda Cortés Lozano
+
+    Date: 30/11/2023
+*/
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -9,7 +21,6 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.Networking;
 using System.Linq;
-
 
 [Serializable]
 public class PosData
@@ -66,7 +77,7 @@ public class AgentController : MonoBehaviour
     public float timeToUpdate = 5.0f;
     private float timer, dt;
 
-    public Texture[] buildingTextures; // Assign this array in the inspector with your textures
+    public Texture[] buildingTextures; // Array of textures to apply to the buildings
     private int simulationUpdateCounter = 0; // Counter for simulation updates
     private bool trafficLightsOriented = false; // Ensures traffic lights are only oriented once
     Dictionary<string, GameObject> cars = new Dictionary<string, GameObject>();
@@ -74,9 +85,7 @@ public class AgentController : MonoBehaviour
 
     void Start()
     {
-        // Initializes
         simulationData = new SimulationData();
-        // Init the car dictionary
         cars = new Dictionary<string, GameObject>();
         trafficLights = new Dictionary<string, GameObject>();
 
@@ -97,7 +106,7 @@ public class AgentController : MonoBehaviour
             {
                 GameObject car = GameObject.Find(carPos.id);
                 CarMovement carMovement = car.GetComponent<CarMovement>();
-                carMovement.SetTarget(new Vector3(carPos.x, carPos.y, carPos.z));
+                carMovement.SetTarget(new Vector3(carPos.x, carPos.y, carPos.z)); // Set the target for interpolation
             }
         }
         else
@@ -113,12 +122,12 @@ public class AgentController : MonoBehaviour
             {
                 GameObject car = GameObject.Find(carPos.id);
                 CarMovement carMovement = car.GetComponent<CarMovement>();
-                carMovement.Move(dt);
+                carMovement.Move(dt); // Interpolate the position
             }
         }
     }
 
-    // City generation methods
+    /* City generation methods */
     float GetRandomHeight()
     {
         // Replace min and max with your desired range
@@ -130,7 +139,6 @@ public class AgentController : MonoBehaviour
     {
         if (buildingTextures.Length > 0)
         {
-            // Specify UnityEngine.Random to resolve the ambiguity
             Texture selectedTexture = buildingTextures[UnityEngine.Random.Range(0, buildingTextures.Length)];
             Renderer renderer = building.GetComponent<Renderer>();
             if (renderer != null)
@@ -144,7 +152,8 @@ public class AgentController : MonoBehaviour
         }
     }
 
-    // Server communication methods
+
+    /* Asynchronous methods to interact with the server */
     IEnumerator SendConfiguration()
     {
         /*
@@ -205,6 +214,7 @@ public class AgentController : MonoBehaviour
         }
     }
 
+    /* Methods to update the simulation */
     private void UpdateSimulationFromData()
     {
         // This block will run only once at mesa step 1

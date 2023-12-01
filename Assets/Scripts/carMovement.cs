@@ -1,11 +1,14 @@
 /* 
-Tarea CG 2
-This code uses the transformation matrices to move the car and its wheels.
+    Manual movement of the car and wheels using matrices.
+    Interpolates car movement between two points and is called by the agent controller.
 
-Created by Fer Cortés
+    Authors:
+            Pablo Banzo Prida
+            María Fernanda Cortés Lozano
+
+        Date: 30/11/2023
 */
 
-// import libraries
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;

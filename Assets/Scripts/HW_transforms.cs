@@ -1,3 +1,15 @@
+/* 
+    Manual matrix transformations for the car and wheels. Called by
+    carMovement.cs.
+
+    Authors:
+            Pablo Banzo Prida
+            María Fernanda Cortés Lozano
+
+        Date: 30/11/2023
+*/
+
+
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;

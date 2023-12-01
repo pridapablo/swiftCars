@@ -1,3 +1,14 @@
+/* 
+    Controls the traffic light's color by changing the color of the Light
+    component. Should be attached to the traffic light's game object.
+
+    Authors:
+            Pablo Banzo Prida
+            María Fernanda Cortés Lozano
+
+        Date: 30/11/2023
+*/
+
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
