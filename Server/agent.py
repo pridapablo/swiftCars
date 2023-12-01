@@ -1,3 +1,19 @@
+"""
+    This file contains the agent classes for the city simulation:
+    - Car
+    - Traffic Light
+    - Destination
+    - Obstacle
+
+    It also contains the A* algorithm implementation and helper functions for the agents.
+    
+    Authors:
+        Pablo Banzo Prida
+        María Fernanda Cortés Lozano
+
+    Date: 30/11/2023
+"""
+
 from mesa import Agent
 from mesa.space import MultiGrid
 import math

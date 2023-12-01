@@ -1,3 +1,14 @@
+"""
+    This file contains the model for the city simulation. It creates the agents
+    and places them in the grid, it later calls the step function of each
+    agent.
+    
+    Authors:
+        Pablo Banzo Prida
+        María Fernanda Cortés Lozano
+
+    Date: 30/11/2023
+"""
 from mesa import Model
 from mesa.time import RandomActivation
 from mesa.space import MultiGrid
@@ -7,40 +18,44 @@ import json
 import requests
 
 def print_grid(multigrid: MultiGrid):
-            # Mapping of direction to arrow symbols
-            direction_arrows = {
-                "Left": "←",
-                "Right": "→",
-                "Up": "↑",
-                "Down": "↓",
-                "Vertical": "|",
-                "Horizontal": "-",
-                "Any": "+"
-            }
+    """
+        Prints the grid to the console to locate the agents server-side.
+        This is useful for seeing when the roads get their directions set correctly.
+    """
+    # Mapping of direction to arrow symbols
+    direction_arrows = {
+        "Left": "←",
+        "Right": "→",
+        "Up": "↑",
+        "Down": "↓",
+        "Vertical": "|",
+        "Horizontal": "-",
+        "Any": "+"
+    }
 
-            for y in range(multigrid.height - 1, -1, -1):  # Start from the top row
-                for x in range(multigrid.width):
-                    next_cell_contents = multigrid.get_cell_list_contents([(x, y)])
+    for y in range(multigrid.height - 1, -1, -1):  # Start from the top row
+        for x in range(multigrid.width):
+            next_cell_contents = multigrid.get_cell_list_contents([(x, y)])
 
-                    # Check if the cell contains any Car agents
-                    car_agents = [agent for agent in next_cell_contents if isinstance(agent, Car)]
-                    destination_agents = [agent for agent in next_cell_contents if isinstance(agent, Destination)]
-                    if car_agents:
-                        # If there's a car, represent it with '⊙'
-                        print('⊙', end=' ')
-                    elif destination_agents:
-                        # If there's a destination, represent it with 'D'
-                        print('D', end=' ')
-                    else:
-                        # Check if the cell contains any Road agents
-                        road_agents = [agent for agent in next_cell_contents if isinstance(agent, Road)]
-                        if road_agents:
-                            # Assuming one road per cell, modify if needed
-                            road = road_agents[0]
-                            print(direction_arrows.get(road.direction, '?'), end=' ')
-                        else:
-                            print('.', end=' ')  # '.' represents an empty cell
-                print()  # Newline after each row
+            # Check if the cell contains any Car agents
+            car_agents = [agent for agent in next_cell_contents if isinstance(agent, Car)]
+            destination_agents = [agent for agent in next_cell_contents if isinstance(agent, Destination)]
+            if car_agents:
+                # If there's a car, represent it with '⊙'
+                print('⊙', end=' ')
+            elif destination_agents:
+                # If there's a destination, represent it with 'D'
+                print('D', end=' ')
+            else:
+                # Check if the cell contains any Road agents
+                road_agents = [agent for agent in next_cell_contents if isinstance(agent, Road)]
+                if road_agents:
+                    # Assuming one road per cell, modify if needed
+                    road = road_agents[0]
+                    print(direction_arrows.get(road.direction, '?'), end=' ')
+                else:
+                    print('.', end=' ')  # '.' represents an empty cell
+        print()  # Newline after each row
 class CityModel(Model):
     """ 
         Creates a model based on a city map.
@@ -109,8 +124,11 @@ class CityModel(Model):
     def get_complete_trips(self):
         return self.complete_trips
     
-    # Function to find a random destination for the cars
     def find_destination(self):
+        '''
+            Finds a random destination agent.
+            Returns None if no destination agents are found.
+        '''
         # Create an empty list to store destination agents
         destinations = []
 
@@ -124,7 +142,12 @@ class CityModel(Model):
     
     def step(self):
         '''
-            Advance the model by one step.
+            Advance the model by one step and post to the endpoint if the
+            periodicity is met and an endpoint is defined.
+
+            Adds a new car every cycle steps.
+
+            Halts when no more cars can be added.
         '''
         # Post to the endpoint every 100 steps
         if self.schedule.steps % self.periodicity == 0 and self.endpoint:
@@ -173,7 +196,6 @@ class CityModel(Model):
             if all_corners_filled:
                 print("All corners are filled. Halting the model.")
                 self.running = False
-            
         
         print(f"Total cars at destination: {self.get_complete_trips()}")
         # Proceed with the rest of the step

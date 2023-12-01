@@ -1,3 +1,18 @@
+"""
+    Server for the traffic model, can be run in mesa or flask mode.
+
+    Arguments:
+        -p, --port: Port number for the server to listen on. Default is 8585.
+        -e, --endpoint: Endpoint URL for posting stats. Note: The server will not ping if no endpoint is provided even if the periodicity is set.
+        -f, --frequency: Time interval (in steps) between consecutive posts. Default is 60.
+        -m, --mode: Visualization mode: 2d mesa portrayal or 3d (for use with Unity). Default is 3d.    
+
+    Authors:
+        Pablo Banzo Prida
+        María Fernanda Cortés Lozano
+
+    Date: 30/11/2023
+"""
 from flask import Flask, request, jsonify
 from model import CityModel
 from agent import Car, Traffic_Light, Obstacle, Road, Destination
