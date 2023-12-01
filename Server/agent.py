@@ -286,7 +286,7 @@ class Car(Agent):
                 self.path.pop(0) # Remove the first element from the path since the agent has moved to that cell
                 return
 
-            # 3. Traffic
+            # 4. Traffic
             if any(isinstance(obj, Car) for obj in next_cell_contents):
                 return # Won't move if there is a car in the next cell
             
