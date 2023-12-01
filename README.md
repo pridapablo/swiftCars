@@ -59,7 +59,10 @@ simulation is done in Unity and the backend runs in Python.
 
 Click here to watch a video of the simulation:
 
-[![Watch the video][googledrive-shield]](https://drive.google.com/file/d/16s5Wneie261dGBbIs-P-Gt45KHIMrjaU/view?usp=sharing)
+[![Watch the
+video][googledrive-shield]](https://drive.google.com/file/d/16s5Wneie261dGBbIs-P-Gt45KHIMrjaU/view?usp=sharing)
+
+The final report of the project can be found in the file `Report.pdf`
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
